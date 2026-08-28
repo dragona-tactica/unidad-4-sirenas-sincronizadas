@@ -1,0 +1,18 @@
+{
+  "name": "unidad4-sirenas-en-sincronia",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "p5": "^1.11.1",
+    "tone": "^15.0.4"
+  },
+  "devDependencies": {
+    "vite": "^5.4.10"
+  }
+}
