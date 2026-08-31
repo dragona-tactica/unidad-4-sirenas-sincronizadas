@@ -22,8 +22,14 @@ export class Sirena {
     this.sizeScale = 0.85 + Math.random() * 0.3;
     this.phaseOffsetSeed = Math.random() * 1000;
 
+    // "Casa" de la sirena: el usuario puede arrastrarla un poco desde aquí,
+    // pero no soltarla lejos — sigue siendo la misma sirena en el mismo tramo
+    // del coro, solo con su distancia mítica y su profundidad ajustadas.
+    this.homeX = x;
+    this.homeY = baseY;
     this.x = x;
     this.baseY = baseY;
+    this.yOffset = 0;
     this.y = baseY;
 
     // 0 = totalmente acoplable, 1 = totalmente aislada del agua (piedra).
@@ -61,7 +67,7 @@ export class Sirena {
     // para el acoplamiento y el coro puede "tirar" de ella otra vez.
     this.disturbance = Math.max(0, this.disturbance - dt * 0.6);
 
-    this.y = this.baseY + Math.sin(this.theta) * 46 * this.sizeScale;
+    this.y = this.baseY + this.yOffset + Math.sin(this.theta) * 46 * this.sizeScale;
   }
 
   kick(amount) {
@@ -71,6 +77,15 @@ export class Sirena {
 
   disturb(amount) {
     this.disturbance = Math.min(1, this.disturbance + amount);
+  }
+
+  // El Navegante puede correr un poco a cada sirena de su sitio: cambia su
+  // distancia mítica con las vecinas (x) y cuándo la alcanza la superficie
+  // (yOffset). El rango es corto a propósito — sigue siendo su mismo lugar
+  // en el coro, no puede llevarla a otro lado del mar.
+  dragTo(px, py, xRange = 70, yRange = 40) {
+    this.x = Math.max(this.homeX - xRange, Math.min(this.homeX + xRange, px));
+    this.yOffset = Math.max(-yRange, Math.min(yRange, py - this.homeY));
   }
 }
 

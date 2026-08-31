@@ -13,6 +13,8 @@ let voices = null;
 let audioStarted = false;
 let globalK = 0.5;
 let hoverRadius = 26;
+let draggingSirena = null;
+let dragMoved = false;
 
 const kSlider = document.getElementById('kSlider');
 const stateLabel = document.getElementById('stateLabel');
@@ -103,6 +105,37 @@ function drawSirena(p, s) {
   p.pop();
 }
 
+// La "ola" no es un objeto físico aparte: es el dibujo directo de sin(theta_i)
+// de las 8 sirenas, ordenadas por su posición en el mar y unidas en una curva.
+// Si Kuramoto sincroniza las fases, la curva se ve como una ola limpia porque
+// las fases realmente están alineadas; si perturbas una con la piedra, la
+// curva se abolla porque esa theta realmente cambió. Nada se simula aparte.
+function drawOla(p, sirenas) {
+  const ordered = [...sirenas].sort((a, b) => a.x - b.x);
+  const points = ordered.map((s) => [s.x, s.y]);
+
+  p.push();
+  p.noStroke();
+  p.fill(40, 90, 140, 70);
+  p.beginShape();
+  p.vertex(points[0][0] - 200, p.height);
+  p.curveVertex(points[0][0] - 100, points[0][1]);
+  for (const [x, y] of points) p.curveVertex(x, y);
+  p.curveVertex(points[points.length - 1][0] + 100, points[points.length - 1][1]);
+  p.vertex(points[points.length - 1][0] + 200, p.height);
+  p.endShape(p.CLOSE);
+
+  p.noFill();
+  p.stroke(160, 210, 255, 160);
+  p.strokeWeight(2);
+  p.beginShape();
+  p.curveVertex(points[0][0] - 100, points[0][1]);
+  for (const [x, y] of points) p.curveVertex(x, y);
+  p.curveVertex(points[points.length - 1][0] + 100, points[points.length - 1][1]);
+  p.endShape();
+  p.pop();
+}
+
 function drawFaro(p, r) {
   const cx = 50;
   const cy = p.height - 50;
@@ -152,11 +185,14 @@ const sketch = (p) => {
     }
 
     ripples = ripples.filter((r) => !r.dead);
+    for (const ripple of ripples) ripple.step(sirenas, dt);
+
+    drawOla(p, sirenas);
+
     for (const ripple of ripples) {
-      ripple.step(sirenas, dt);
       p.noFill();
-      p.stroke(120, 200, 255, 120 * (1 - ripple.radius / 900));
-      p.strokeWeight(2);
+      p.stroke(255, 255, 255, 90 * (1 - ripple.radius / 900));
+      p.strokeWeight(1.5);
       p.circle(ripple.x, p.height * 0.55, ripple.radius * 2);
     }
 
@@ -174,14 +210,28 @@ const sketch = (p) => {
     if (p.mouseY < 0 || p.mouseY > p.height || p.mouseX < 0 || p.mouseX > p.width) return;
     if (!audioStarted) return;
 
-    const clicked = sirenas.find((s) => Math.hypot(s.x - p.mouseX, s.y - p.mouseY) < hoverRadius);
-    if (clicked) {
-      // El Grito de Ulises: perturbación individual directa.
-      clicked.kick(Math.PI / 2);
+    const target = sirenas.find((s) => Math.hypot(s.x - p.mouseX, s.y - p.mouseY) < hoverRadius);
+    if (target) {
+      draggingSirena = target;
+      dragMoved = false;
     } else {
-      // Piedra en el agua: perturbación del medio que viaja y corta el acoplamiento a su paso.
+      // Piedra en el agua: perturbación real que viaja y golpea la fase/acoplamiento a su paso.
       ripples.push(new Ripple(p.mouseX));
     }
+  };
+
+  p.mouseDragged = () => {
+    if (!draggingSirena) return;
+    if (Math.hypot(p.mouseX - draggingSirena.x, p.mouseY - draggingSirena.y) > 3) dragMoved = true;
+    draggingSirena.dragTo(p.mouseX, p.mouseY);
+  };
+
+  p.mouseReleased = () => {
+    if (draggingSirena && !dragMoved) {
+      // No se movió: fue un clic, no un arrastre. El Grito de Ulises.
+      draggingSirena.kick(Math.PI / 2);
+    }
+    draggingSirena = null;
   };
 };
 
