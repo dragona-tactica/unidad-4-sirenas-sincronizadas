@@ -7,7 +7,7 @@ export const PERSONALITIES = [
     label: 'La Melismática (flauta)',
     color: '#7fd8c4',
     shape: 'sinuosa',
-    baseOmega: 0.85,
+    baseOmega: 1.0,
     synth: 'melismatica',
   },
   {
@@ -15,7 +15,7 @@ export const PERSONALITIES = [
     label: 'La Staccato (campana)',
     color: '#f2b134',
     shape: 'espinada',
-    baseOmega: 1.25,
+    baseOmega: 1.7,
     synth: 'staccato',
   },
   {
@@ -23,7 +23,7 @@ export const PERSONALITIES = [
     label: 'La Dronera (cuerno)',
     color: '#7b5ea7',
     shape: 'pesada',
-    baseOmega: 0.6,
+    baseOmega: 0.45,
     synth: 'dronera',
   },
   {
@@ -31,7 +31,7 @@ export const PERSONALITIES = [
     label: 'La Brillante (cristal)',
     color: '#e8f0ff',
     shape: 'espiral',
-    baseOmega: 1.55,
+    baseOmega: 2.5,
     synth: 'brillante',
   },
 ];

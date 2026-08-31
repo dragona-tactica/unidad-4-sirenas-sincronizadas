@@ -15,7 +15,7 @@ export class Sirena {
 
     // omega: tono base / temperamento. Comparten registro de familia
     // (baseOmega) pero cada individuo tiene su propio matiz.
-    this.omega = this.personality.baseOmega * (0.85 + Math.random() * 0.3);
+    this.omega = this.personality.baseOmega * (0.75 + Math.random() * 0.5);
 
     // Identidad visual individual dentro del arquetipo compartido.
     this.hueShift = (Math.random() - 0.5) * 24;
@@ -55,7 +55,7 @@ export class Sirena {
       if (other === this) continue;
       const dist = Math.abs(this.x - other.x);
       // "Distancia mítica": el acoplamiento decae con la distancia visual.
-      const spatial = Math.exp(-dist / 420);
+      const spatial = Math.exp(-dist / 220);
       const localFactor = spatial * (1 - this.disturbance) * (1 - other.disturbance);
       coupling += localFactor * Math.sin(other.theta - this.theta);
     }
