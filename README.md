@@ -8,8 +8,9 @@ Prueba de concepto para el reto de Unidad 4 (modelo de Kuramoto) del curso
 Un coro de 8 sirenas emerge del mar. Cada una es un oscilador acoplado:
 
 - **θᵢ (fase)**: el punto de su ciclo de respiración/canto (inspiración →
-  nota → silencio). Se mapea a su posición vertical (`sin(θ)`) y dispara su
-  voz cada vez que cruza por cero.
+  nota → silencio). Se mapea directamente a la posición del frente de su
+  ola en su carril (`θ/2π` de recorrido entre el mar abierto arriba y la
+  costa abajo) y dispara su voz cada vez que cruza por cero.
 - **ωᵢ (frecuencia natural)**: su registro/temperamento base. Cada
   personalidad tiene un registro característico, y cada individuo dentro de
   esa personalidad tiene una variación propia.
@@ -27,30 +28,41 @@ color — 8 identidades reconocibles, no 4 repetidas.
 
 ## La ola: por qué Kuramoto está íntegramente visible
 
-La superficie del mar que se dibuja **no es un objeto físico simulado aparte**.
-Es literalmente la curva que conecta `(x_i, sin(θ_i))` de las 8 sirenas, cada
-frame. No hay ninguna capa intermedia: si las fases están sincronizadas, la
-curva se ve como una ola limpia porque las 8 fases realmente están alineadas;
-si perturbas una con la piedra, la curva se abolla porque esa θ realmente
-cambió. La suma de Kuramoto ponderada por distancia
+Cada sirena tiene su propio **carril vertical**, independiente de las demás
+(inspirado en el experimento [Rhythm de Chrome Music Lab](https://musiclab.chromeexperiments.com/Rhythm/):
+varios carriles bajando a su propio ritmo, cuya interacción produce el patrón
+colectivo). El frente que baja por su carril **no es un objeto físico
+simulado aparte**: su posición es literalmente `θ_i / 2π` — el mismo ángulo
+que ya gobierna todo lo demás. Cuando `θ_i` completa una vuelta (el mismo
+cruce por cero que dispara su canto), el frente llega a la costa, se dispersa
+ahí, y un nuevo frente arranca desde arriba. Si dos sirenas están acopladas,
+sus frentes bajan al mismo ritmo porque sus `θ` reales ya están alineadas —
+no hay ninguna capa intermedia que sincronizar aparte, ni un reloj que
+reemplace al modelo. La suma de Kuramoto ponderada por distancia
 (`(K/N)·Σ spatial(i,j)·sin(θⱼ−θᵢ)`, en [`sirena.js`](src/simulation/sirena.js))
-sigue siendo la única ecuación que mueve las fases — la ola es su
+sigue siendo la única ecuación que mueve las fases; el carril es su
 representación directa, no una aproximación ni un reemplazo.
+
+Mover una sirena de su sitio solo cambia **su propio carril** (su distancia
+mítica con las vecinas). Nunca reposiciona a otra — si otro carril cambia de
+ritmo después de mover una, es porque el acoplamiento real hizo que su `θ`
+cambiara con el tiempo, no porque el arrastre la haya movido directamente.
 
 ## Interacciones
 
 - **Slider "Marea" (K)**: control global obligatorio del modelo.
 - **Clic sobre una sirena** — *El Grito de Ulises*: perturbación individual,
-  la desfasa +π/2 del grupo.
+  la desfasa +π/2 del grupo (se ve como su frente saltando de posición en su
+  propio carril).
 - **Arrastrar una sirena**: mueve un poco su sitio (rango corto, no la sueltas
   en otro lugar del mar) — cambia su distancia mítica con las vecinas (x) y
-  cuándo la alcanza la superficie (profundidad).
+  su profundidad de costa (y), sin afectar directamente a ninguna otra.
 - **Clic sobre el mar** — *piedra en el agua*: mecanismo de perturbación.
   Genera un frente de onda real que viaja horizontalmente; al pasar por una
   sirena le da un golpe de fase y la desconecta brevemente del acoplamiento
-  ("rompe el agua que las une"). El efecto se ve directamente como una
-  abolladura en la ola — no hay una animación paralela dibujando el golpe,
-  es la misma curva reaccionando a la θ real que cambió.
+  ("rompe el agua que las une"). El efecto se ve directamente como un salto
+  en su carril — no hay una animación paralela dibujando el golpe, es el
+  mismo carril reaccionando a la θ real que cambió.
 - **Faro** (esquina inferior izquierda): indicador del parámetro de orden
   `r` — rojo parpadeante en desorden, amarillo intermitente en organización
   parcial, blanco fijo (con haz de luz) en organización estable.

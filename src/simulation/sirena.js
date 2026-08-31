@@ -30,6 +30,7 @@ export class Sirena {
     this.x = x;
     this.baseY = baseY;
     this.yOffset = 0;
+    // coastY: donde vive su cuerpo y donde "rompe" su ola al llegar.
     this.y = baseY;
 
     // 0 = totalmente acoplable, 1 = totalmente aislada del agua (piedra).
@@ -37,6 +38,10 @@ export class Sirena {
 
     this.justCrossedZero = false;
     this.phaseVelocity = 0;
+    // Pulso visual/sonoro que se dispara justo cuando su ola llega a la costa
+    // (cruce por cero) y se apaga solo — no es un reloj, es consecuencia del
+    // mismo evento que ya dispara su canto.
+    this.singPulse = 0;
   }
 
   // Actualiza la fase con la ecuación de Kuramoto extendida:
@@ -67,7 +72,15 @@ export class Sirena {
     // para el acoplamiento y el coro puede "tirar" de ella otra vez.
     this.disturbance = Math.max(0, this.disturbance - dt * 0.6);
 
-    this.y = this.baseY + this.yOffset + Math.sin(this.theta) * 46 * this.sizeScale;
+    this.y = this.baseY + this.yOffset;
+    if (this.justCrossedZero) this.singPulse = 1;
+    this.singPulse = Math.max(0, this.singPulse - dt * 2.2);
+  }
+
+  // Progreso 0..1 de su ola en el carril: 0 = acaba de reiniciar arriba,
+  // 1 = a punto de llegar a la costa. Es theta, sin más — nada se simula aparte.
+  waveProgress() {
+    return this.theta / (Math.PI * 2);
   }
 
   kick(amount) {

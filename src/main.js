@@ -55,10 +55,12 @@ function drawSirena(p, s) {
   const col = p.color(s.personality.color);
   const h = p.hue(col) + s.hueShift;
   p.colorMode(p.HSB, 360, 100, 100, 100);
-  const glow = 40 + Math.abs(s.phaseVelocity) * 60;
+  // Brillo de fondo: vivo por su velocidad de fase, con un golpe extra justo
+  // cuando su ola llega a la costa (singPulse), no por un timer aparte.
+  const glow = 40 + Math.abs(s.phaseVelocity) * 60 + s.singPulse * 50;
 
   p.noStroke();
-  p.fill(h, p.saturation(col), p.brightness(col), 25);
+  p.fill(h, p.saturation(col), p.brightness(col), 25 + s.singPulse * 35);
   p.circle(0, 0, glow * s.sizeScale);
 
   p.fill(h, p.saturation(col), p.brightness(col), 90);
@@ -105,34 +107,52 @@ function drawSirena(p, s) {
   p.pop();
 }
 
-// La "ola" no es un objeto físico aparte: es el dibujo directo de sin(theta_i)
-// de las 8 sirenas, ordenadas por su posición en el mar y unidas en una curva.
-// Si Kuramoto sincroniza las fases, la curva se ve como una ola limpia porque
-// las fases realmente están alineadas; si perturbas una con la piedra, la
-// curva se abolla porque esa theta realmente cambió. Nada se simula aparte.
-function drawOla(p, sirenas) {
-  const ordered = [...sirenas].sort((a, b) => a.x - b.x);
-  const points = ordered.map((s) => [s.x, s.y]);
+// Cada sirena tiene su propio carril, independiente de las demás — mover una
+// no reacomoda a las otras. El frente que baja por el carril NO es un objeto
+// físico aparte: su posición es literalmente theta_i (waveProgress = theta/2π).
+// Cuando theta completa una vuelta (el mismo cruce por cero que dispara su
+// canto), el frente llega a la costa y un nuevo frente arranca desde arriba.
+// Si Kuramoto acopla dos sirenas, sus frentes bajan al mismo ritmo porque sus
+// theta reales ya están alineadas — no hay ninguna capa que sincronizar aparte.
+function drawLane(p, s, topY) {
+  const progress = s.waveProgress();
+  const frontY = topY + progress * (s.y - topY);
+  const col = p.color(s.personality.color);
 
   p.push();
-  p.noStroke();
-  p.fill(40, 90, 140, 70);
-  p.beginShape();
-  p.vertex(points[0][0] - 200, p.height);
-  p.curveVertex(points[0][0] - 100, points[0][1]);
-  for (const [x, y] of points) p.curveVertex(x, y);
-  p.curveVertex(points[points.length - 1][0] + 100, points[points.length - 1][1]);
-  p.vertex(points[points.length - 1][0] + 200, p.height);
-  p.endShape(p.CLOSE);
+  p.colorMode(p.HSB, 360, 100, 100, 100);
+  const h = p.hue(col) + s.hueShift;
 
-  p.noFill();
-  p.stroke(160, 210, 255, 160);
+  // Guía tenue de todo el carril, de arriba a la costa.
+  p.stroke(h, 20, 80, 25);
   p.strokeWeight(2);
-  p.beginShape();
-  p.curveVertex(points[0][0] - 100, points[0][1]);
-  for (const [x, y] of points) p.curveVertex(x, y);
-  p.curveVertex(points[points.length - 1][0] + 100, points[points.length - 1][1]);
-  p.endShape();
+  p.line(s.x, topY, s.x, s.y);
+
+  // Tramo ya recorrido por la ola: sólido, brillo proporcional a qué tan
+  // acoplada está (menos disturbance = coro más presente).
+  p.stroke(h, 60, 95, 55 + 35 * (1 - s.disturbance));
+  p.strokeWeight(3);
+  p.line(s.x, topY, s.x, frontY);
+
+  // El frente mismo.
+  p.strokeWeight(1);
+  p.fill(h, 40, 100, 90);
+  p.noStroke();
+  p.ellipse(s.x, frontY, 16, 5);
+  p.pop();
+}
+
+// Cuando el frente de una sirena toca la costa, se dispersa ahí mismo —
+// consecuencia directa del mismo cruce por cero, no una animación aparte.
+function drawSplash(p, s) {
+  p.push();
+  p.noFill();
+  p.stroke(220, 235, 255, 140);
+  p.strokeWeight(2);
+  for (let i = 0; i < 3; i++) {
+    const spread = 14 + i * 12;
+    p.arc(s.x, s.y, spread * 2, spread, Math.PI, Math.PI * 2);
+  }
   p.pop();
 }
 
@@ -178,25 +198,29 @@ const sketch = (p) => {
   p.draw = () => {
     p.background(4, 14, 28);
     const dt = Math.min(0.05, p.deltaTime / 1000);
+    const topY = p.height * 0.1;
 
     for (const s of sirenas) {
       s.step(sirenas, globalK, dt);
-      if (audioStarted && s.justCrossedZero) triggerSirena(voices, s);
+      if (s.justCrossedZero && audioStarted) triggerSirena(voices, s);
     }
 
     ripples = ripples.filter((r) => !r.dead);
     for (const ripple of ripples) ripple.step(sirenas, dt);
 
-    drawOla(p, sirenas);
+    for (const s of sirenas) drawLane(p, s, topY);
 
     for (const ripple of ripples) {
       p.noFill();
-      p.stroke(255, 255, 255, 90 * (1 - ripple.radius / 900));
+      p.stroke(255, 255, 255, 70 * (1 - ripple.radius / 900));
       p.strokeWeight(1.5);
       p.circle(ripple.x, p.height * 0.55, ripple.radius * 2);
     }
 
-    for (const s of sirenas) drawSirena(p, s);
+    for (const s of sirenas) {
+      if (s.justCrossedZero) drawSplash(p, s);
+      drawSirena(p, s);
+    }
 
     const { r } = computeOrderParameter(sirenas);
     drawFaro(p, r);
