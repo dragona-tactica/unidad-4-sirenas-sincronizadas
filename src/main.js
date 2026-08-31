@@ -2,15 +2,15 @@ import p5 from 'p5';
 import * as Tone from 'tone';
 import { Sirena, computeOrderParameter } from './simulation/sirena.js';
 import { Ripple } from './simulation/ripple.js';
-import { createVoices, triggerSirena } from './audio/voices.js';
+import { createMaster, createVoice, triggerSirena } from './audio/voices.js';
 
 const N_PERSONALITIES = 4;
 const SIRENAS_PER_PERSONALITY = 2;
 
 let sirenas = [];
 let ripples = [];
-let voices = null;
 let audioStarted = false;
+let audioMaster = null;
 let globalK = 0.5;
 let hoverRadius = 26;
 let draggingSirena = null;
@@ -26,7 +26,10 @@ kSlider.addEventListener('input', () => {
 
 startOverlay.addEventListener('click', async () => {
   await Tone.start();
-  voices = createVoices();
+  audioMaster = createMaster();
+  // Una voz por sirena, nunca compartida entre las 2 de una misma
+  // personalidad -- ver el comentario en audio/voices.js.
+  for (const s of sirenas) s.voice = createVoice(s.personality.synth, audioMaster);
   audioStarted = true;
   startOverlay.style.display = 'none';
 });
@@ -193,6 +196,9 @@ const sketch = (p) => {
   p.windowResized = () => {
     p.resizeCanvas(window.innerWidth, window.innerHeight);
     sirenas = buildSirenas(p.width, p.height);
+    if (audioStarted) {
+      for (const s of sirenas) s.voice = createVoice(s.personality.synth, audioMaster);
+    }
   };
 
   p.draw = () => {
@@ -202,7 +208,15 @@ const sketch = (p) => {
 
     for (const s of sirenas) {
       s.step(sirenas, globalK, dt);
-      if (s.justCrossedZero && audioStarted) triggerSirena(voices, s);
+      if (s.justCrossedZero && audioStarted) {
+        // El audio nunca debe poder tumbar el draw() completo: un fallo aquí
+        // se queda como advertencia, no como pantalla congelada.
+        try {
+          triggerSirena(s);
+        } catch (err) {
+          console.warn('triggerSirena failed', err);
+        }
+      }
     }
 
     ripples = ripples.filter((r) => !r.dead);
