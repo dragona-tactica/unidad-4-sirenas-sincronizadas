@@ -1,11 +1,9 @@
 import p5 from 'p5';
 import * as Tone from 'tone';
+import { AGENTS } from './simulation/agents.js';
 import { Sirena, computeOrderParameter } from './simulation/sirena.js';
 import { Ripple } from './simulation/ripple.js';
 import { createMaster, createVoice, triggerSirena } from './audio/voices.js';
-
-const N_PERSONALITIES = 4;
-const SIRENAS_PER_PERSONALITY = 2;
 
 let sirenas = [];
 let ripples = [];
@@ -27,9 +25,8 @@ kSlider.addEventListener('input', () => {
 startOverlay.addEventListener('click', async () => {
   await Tone.start();
   audioMaster = createMaster();
-  // Una voz por sirena, nunca compartida entre las 2 de una misma
-  // personalidad -- ver el comentario en audio/voices.js.
-  for (const s of sirenas) s.voice = createVoice(s.personality.synth, audioMaster);
+  // Una voz por sirena -- ver el comentario en audio/voices.js.
+  for (const s of sirenas) s.voice = createVoice(s.agent.synth, audioMaster);
   audioStarted = true;
   startOverlay.style.display = 'none';
 });
@@ -38,15 +35,12 @@ function buildSirenas(width, height) {
   const list = [];
   const margin = width * 0.1;
   const usableWidth = width - margin * 2;
-  const total = N_PERSONALITIES * SIRENAS_PER_PERSONALITY;
+  const total = AGENTS.length;
 
-  for (let p = 0; p < N_PERSONALITIES; p++) {
-    for (let i = 0; i < SIRENAS_PER_PERSONALITY; i++) {
-      const index = p * SIRENAS_PER_PERSONALITY + i;
-      const x = margin + (usableWidth * (index + 0.5)) / total;
-      const baseY = height * 0.55;
-      list.push(new Sirena({ personalityIndex: p, individualIndex: i, x, baseY }));
-    }
+  for (let i = 0; i < total; i++) {
+    const x = margin + (usableWidth * (i + 0.5)) / total;
+    const baseY = height * 0.62;
+    list.push(new Sirena({ agentIndex: i, x, baseY }));
   }
   return list;
 }
@@ -55,29 +49,44 @@ function drawSirena(p, s) {
   p.push();
   p.translate(s.x, s.y);
 
-  const col = p.color(s.personality.color);
-  const h = p.hue(col) + s.hueShift;
+  const col = p.color(s.agent.color);
   p.colorMode(p.HSB, 360, 100, 100, 100);
-  // Brillo de fondo: vivo por su velocidad de fase, con un golpe extra justo
-  // cuando su ola llega a la costa (singPulse), no por un timer aparte.
-  const glow = 40 + Math.abs(s.phaseVelocity) * 60 + s.singPulse * 50;
+  const h = p.hue(col);
+  const sat = p.saturation(col);
+  const bri = p.brightness(col);
+  const glow = 40 + Math.abs(s.phaseVelocity) * 40 + s.singPulse * 50;
 
   p.noStroke();
-  p.fill(h, p.saturation(col), p.brightness(col), 25 + s.singPulse * 35);
+  p.fill(h, sat, bri, 25 + s.singPulse * 35);
   p.circle(0, 0, glow * s.sizeScale);
 
-  p.fill(h, p.saturation(col), p.brightness(col), 90);
+  p.fill(h, sat, bri, 90);
+  p.stroke(h, sat, Math.min(100, bri + 20), 90);
+  p.strokeWeight(1.5);
 
-  const size = 34 * s.sizeScale;
-  switch (s.personality.shape) {
-    case 'sinuosa': {
+  const size = 30 * s.sizeScale;
+  switch (s.agent.shape) {
+    case 'arco': {
+      // Lira: arco tenso con una cuerda que vibra según su velocidad de fase.
       p.push();
-      p.rotate(Math.sin(s.theta) * 0.2);
-      p.ellipse(0, 0, size * 1.6, size * 0.8);
+      p.rotate(Math.sin(s.theta) * 0.12);
+      p.noFill();
+      p.arc(0, size * 0.3, size * 2.2, size * 2.2, Math.PI * 1.15, Math.PI * 1.85);
+      p.line(-size * 0.9, -size * 0.05, size * 0.9, -size * 0.05);
       p.pop();
       break;
     }
+    case 'gota': {
+      // Pipa: cuerpo de gota/laúd.
+      p.beginShape();
+      p.vertex(0, -size * 1.1);
+      p.bezierVertex(size * 0.9, -size * 0.4, size * 0.9, size * 0.7, 0, size * 0.9);
+      p.bezierVertex(-size * 0.9, size * 0.7, -size * 0.9, -size * 0.4, 0, -size * 1.1);
+      p.endShape(p.CLOSE);
+      break;
+    }
     case 'espinada': {
+      // Xilófono: estrella percusiva.
       p.beginShape();
       const spikes = 8;
       for (let i = 0; i < spikes; i++) {
@@ -88,11 +97,33 @@ function drawSirena(p, s) {
       p.endShape(p.CLOSE);
       break;
     }
-    case 'pesada': {
-      p.ellipse(0, 0, size * 1.8, size * 1.3);
+    case 'aliento': {
+      // Viento: forma alargada que ondula suave, como aire moviéndose.
+      p.push();
+      p.rotate(Math.sin(s.theta * 0.7) * 0.25);
+      p.ellipse(0, 0, size * 1.8, size * 0.75);
+      p.pop();
+      break;
+    }
+    case 'tazon': {
+      // Metal: tazón tibetano, ancho y bajo, con un aro de resonancia.
+      p.ellipse(0, size * 0.15, size * 2, size * 1.2);
+      p.noFill();
+      p.ellipse(0, size * 0.05, size * 1.4, size * 0.7);
+      break;
+    }
+    case 'cuerdas': {
+      // Arpa: marco con varias cuerdas verticales.
+      p.noFill();
+      const strings = 5;
+      for (let i = 0; i < strings; i++) {
+        const sx = (-size * 0.7) + (i * (size * 1.4)) / (strings - 1);
+        p.line(sx, -size * 0.9, sx * 0.4, size * 0.9);
+      }
       break;
     }
     case 'espiral': {
+      // Campana / Glockenspiel: destellos en espiral.
       p.push();
       p.rotate(s.theta * 0.5);
       for (let i = 0; i < 5; i++) {
@@ -104,58 +135,56 @@ function drawSirena(p, s) {
       p.pop();
       break;
     }
+    case 'brillo': {
+      // Sintetizador: nube etérea con partículas orbitando lento.
+      p.ellipse(0, 0, size * 1.3, size * 1.3);
+      p.noStroke();
+      for (let i = 0; i < 4; i++) {
+        const a = s.theta * 0.3 + (Math.PI * 2 * i) / 4;
+        p.circle(Math.cos(a) * size * 1.1, Math.sin(a) * size * 1.1, 5);
+      }
+      break;
+    }
   }
 
   p.colorMode(p.RGB, 255);
   p.pop();
 }
 
-// Cada sirena tiene su propio carril, independiente de las demás — mover una
-// no reacomoda a las otras. El frente que baja por el carril NO es un objeto
-// físico aparte: su posición es literalmente theta_i (waveProgress = theta/2π).
-// Cuando theta completa una vuelta (el mismo cruce por cero que dispara su
-// canto), el frente llega a la costa y un nuevo frente arranca desde arriba.
-// Si Kuramoto acopla dos sirenas, sus frentes bajan al mismo ritmo porque sus
-// theta reales ya están alineadas — no hay ninguna capa que sincronizar aparte.
-function drawLane(p, s, topY) {
-  const progress = s.waveProgress();
-  const frontY = topY + progress * (s.y - topY);
-  const col = p.color(s.personality.color);
+// Escalera de 4 peldaños = su escala de 4 notas, de ida y vuelta (péndulo).
+// El marcador no es un objeto físico aparte: su posición ES notePosition(),
+// es decir theta reformulado como recorrido por su propia escala. No hay
+// ninguna capa intermedia entre el modelo y lo que se ve.
+function drawNoteLadder(p, s) {
+  const rungGap = 34;
+  const bottomY = s.y - 26;
+  const col = p.color(s.agent.color);
 
   p.push();
   p.colorMode(p.HSB, 360, 100, 100, 100);
-  const h = p.hue(col) + s.hueShift;
+  const h = p.hue(col);
 
-  // Guía tenue de todo el carril, de arriba a la costa.
-  p.stroke(h, 20, 80, 25);
+  p.stroke(h, 20, 85, 30);
   p.strokeWeight(2);
-  p.line(s.x, topY, s.x, s.y);
+  p.line(s.x, bottomY, s.x, bottomY - rungGap * 3);
 
-  // Tramo ya recorrido por la ola: sólido, brillo proporcional a qué tan
-  // acoplada está (menos disturbance = coro más presente).
-  p.stroke(h, 60, 95, 55 + 35 * (1 - s.disturbance));
-  p.strokeWeight(3);
-  p.line(s.x, topY, s.x, frontY);
-
-  // El frente mismo.
-  p.strokeWeight(1);
-  p.fill(h, 40, 100, 90);
-  p.noStroke();
-  p.ellipse(s.x, frontY, 16, 5);
-  p.pop();
-}
-
-// Cuando el frente de una sirena toca la costa, se dispersa ahí mismo —
-// consecuencia directa del mismo cruce por cero, no una animación aparte.
-function drawSplash(p, s) {
-  p.push();
-  p.noFill();
-  p.stroke(220, 235, 255, 140);
-  p.strokeWeight(2);
-  for (let i = 0; i < 3; i++) {
-    const spread = 14 + i * 12;
-    p.arc(s.x, s.y, spread * 2, spread, Math.PI, Math.PI * 2);
+  p.textAlign(p.RIGHT, p.CENTER);
+  p.textSize(10);
+  for (let i = 0; i < 4; i++) {
+    const ry = bottomY - i * rungGap;
+    const active = i === s.noteIndex;
+    p.noStroke();
+    p.fill(h, active ? 70 : 25, active ? 100 : 70, active ? 90 : 40);
+    p.circle(s.x, ry, active ? 7 : 4);
+    p.fill(h, 30, 90, active ? 90 : 45);
+    p.text(s.agent.notes[i], s.x - 10, ry);
   }
+
+  // El marcador: posición continua entre peldaños, literalmente notePosition().
+  const markerY = bottomY - s.notePosition() * rungGap;
+  p.noStroke();
+  p.fill(h, 50, 100, 95);
+  p.circle(s.x, markerY, 9);
   p.pop();
 }
 
@@ -197,20 +226,18 @@ const sketch = (p) => {
     p.resizeCanvas(window.innerWidth, window.innerHeight);
     sirenas = buildSirenas(p.width, p.height);
     if (audioStarted) {
-      for (const s of sirenas) s.voice = createVoice(s.personality.synth, audioMaster);
+      for (const s of sirenas) s.voice = createVoice(s.agent.synth, audioMaster);
     }
   };
 
   p.draw = () => {
     p.background(4, 14, 28);
     const dt = Math.min(0.05, p.deltaTime / 1000);
-    const topY = p.height * 0.1;
 
     for (const s of sirenas) {
       s.step(sirenas, globalK, dt);
-      if (s.justCrossedZero && audioStarted) {
-        // El audio nunca debe poder tumbar el draw() completo: un fallo aquí
-        // se queda como advertencia, no como pantalla congelada.
+      if (s.justChangedNote && audioStarted) {
+        // El audio nunca debe poder tumbar el draw() completo.
         try {
           triggerSirena(s);
         } catch (err) {
@@ -222,19 +249,16 @@ const sketch = (p) => {
     ripples = ripples.filter((r) => !r.dead);
     for (const ripple of ripples) ripple.step(sirenas, dt);
 
-    for (const s of sirenas) drawLane(p, s, topY);
+    for (const s of sirenas) drawNoteLadder(p, s);
 
     for (const ripple of ripples) {
       p.noFill();
       p.stroke(255, 255, 255, 70 * (1 - ripple.radius / 900));
       p.strokeWeight(1.5);
-      p.circle(ripple.x, p.height * 0.55, ripple.radius * 2);
+      p.circle(ripple.x, p.height * 0.62, ripple.radius * 2);
     }
 
-    for (const s of sirenas) {
-      if (s.justCrossedZero) drawSplash(p, s);
-      drawSirena(p, s);
-    }
+    for (const s of sirenas) drawSirena(p, s);
 
     const { r } = computeOrderParameter(sirenas);
     drawFaro(p, r);
@@ -253,7 +277,7 @@ const sketch = (p) => {
       draggingSirena = target;
       dragMoved = false;
     } else {
-      // Piedra en el agua: perturbación real que viaja y golpea la fase/acoplamiento a su paso.
+      // Piedra en el agua: mecanismo de perturbación, altera la K de las que toca.
       ripples.push(new Ripple(p.mouseX));
     }
   };
@@ -266,8 +290,8 @@ const sketch = (p) => {
 
   p.mouseReleased = () => {
     if (draggingSirena && !dragMoved) {
-      // No se movió: fue un clic, no un arrastre. El Grito de Ulises.
-      draggingSirena.kick(Math.PI / 2);
+      // No se movió: fue un clic, no un arrastre. Avanza manualmente su nota.
+      draggingSirena.advanceNote();
     }
     draggingSirena = null;
   };

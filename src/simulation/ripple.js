@@ -1,6 +1,6 @@
-// Una piedra lanzada al mar: un frente de onda que viaja y, al pasar por
-// una sirena, la desconecta brevemente del acoplamiento (rompe "el agua que
-// las une") y le da un golpe de fase.
+// Una piedra lanzada al mar: un frente que viaja y, al pasar por una
+// sirena, le baja temporalmente su K efectiva -- se desconecta un rato del
+// ritmo del coro. No le toca la fase directamente; solo el acoplamiento.
 const SPEED = 260; // px/s
 const MAX_RADIUS = 900;
 const FRONT_WIDTH = 46;
@@ -27,7 +27,6 @@ export class Ripple {
       const dist = Math.abs(s.x - this.x);
       if (Math.abs(dist - this.radius) < FRONT_WIDTH) {
         this.hitIds.add(s.id);
-        s.kick((Math.PI / 2) * strength);
         s.disturb(0.85 * strength + 0.15);
       }
     }

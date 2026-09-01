@@ -1,51 +1,66 @@
-import { PERSONALITIES } from './personalities.js';
+import { AGENTS } from './agents.js';
 
 let nextId = 0;
+const TAU = Math.PI * 2;
 
 export class Sirena {
-  constructor({ personalityIndex, individualIndex, x, baseY }) {
+  constructor({ agentIndex, x, baseY }) {
     this.id = nextId++;
-    this.personality = PERSONALITIES[personalityIndex];
-    this.individualIndex = individualIndex;
+    this.agent = AGENTS[agentIndex];
 
-    // theta: fase del ciclo de canto (0..2PI). Arranca en un punto aleatorio
-    // para que el desorden inicial sea real, no escenificado.
-    this.theta = Math.random() * Math.PI * 2;
+    // theta: en qué punto de su ciclo de ida-y-vuelta por las 4 notas está.
+    // Arranca en un punto aleatorio -- el desorden inicial es real.
+    this.theta = Math.random() * TAU;
     this.prevTheta = this.theta;
 
-    // omega: tono base / temperamento. Comparten registro de familia
-    // (baseOmega) pero cada individuo tiene su propio matiz.
-    this.omega = this.personality.baseOmega * (0.75 + Math.random() * 0.5);
+    // omega: qué tan rápido completa el recorrido de ida y vuelta por sus
+    // 4 notas. Cada agente tiene su propio ritmo base, con una variación
+    // individual para que el desorden inicial no sea idéntico entre runs.
+    this.omega = this.agent.baseOmega * (0.75 + Math.random() * 0.5);
+    // El Navegante puede acelerar/frenar su ciclo arrastrándola verticalmente.
+    this.omegaMultiplier = 1;
 
-    // Identidad visual individual dentro del arquetipo compartido.
-    this.hueShift = (Math.random() - 0.5) * 24;
     this.sizeScale = 0.85 + Math.random() * 0.3;
-    this.phaseOffsetSeed = Math.random() * 1000;
 
-    // "Casa" de la sirena: el usuario puede arrastrarla un poco desde aquí,
-    // pero no soltarla lejos — sigue siendo la misma sirena en el mismo tramo
-    // del coro, solo con su distancia mítica y su profundidad ajustadas.
+    // "Casa" de la sirena: el usuario puede arrastrarla un poco desde aquí.
     this.homeX = x;
     this.homeY = baseY;
     this.x = x;
     this.baseY = baseY;
-    this.yOffset = 0;
-    // coastY: donde vive su cuerpo y donde "rompe" su ola al llegar.
     this.y = baseY;
 
-    // 0 = totalmente acoplable, 1 = totalmente aislada del agua (piedra).
+    // 0 = totalmente acoplable, 1 = totalmente aislada del acoplamiento
+    // (piedra). Esto es literalmente "alterar la K de las que impacta".
     this.disturbance = 0;
 
-    this.justCrossedZero = false;
+    this.noteIndex = this.currentNoteIndex();
+    this.prevNoteIndex = this.noteIndex;
+    this.justChangedNote = false;
     this.phaseVelocity = 0;
-    // Pulso visual/sonoro que se dispara justo cuando su ola llega a la costa
-    // (cruce por cero) y se apaga solo — no es un reloj, es consecuencia del
-    // mismo evento que ya dispara su canto.
+
+    // Pulso visual/sonoro que se dispara justo cuando cambia de nota y se
+    // apaga solo -- consecuencia del mismo evento que dispara su canto.
     this.singPulse = 0;
   }
 
-  // Actualiza la fase con la ecuación de Kuramoto extendida:
-  // dtheta/dt = omega + (K/N) * sum_j spatialCoupling(i,j) * disturbance(i,j) * sin(theta_j - theta_i)
+  // Posición continua (0..3) dentro de su escala de 4 notas, en forma de
+  // péndulo: sube de la nota 0 a la 3 en la primera mitad del ciclo, y baja
+  // de vuelta de la 3 a la 0 en la segunda mitad. Un solo giro completo de
+  // theta (0..2π) = un recorrido completo de ida y vuelta.
+  notePosition() {
+    const f = this.theta / TAU;
+    return 3 - Math.abs(6 * f - 3);
+  }
+
+  currentNoteIndex() {
+    return Math.min(3, Math.max(0, Math.round(this.notePosition())));
+  }
+
+  // Ecuación de Kuramoto sin modificar: dtheta/dt = omega + (K/N)*sum(...).
+  // La única extensión (topología espacial: el acoplamiento decae con la
+  // distancia mítica) sigue siendo la misma de antes. K sincroniza el RITMO
+  // de subida/bajada de nota entre agentes -- no el tono, cada uno sigue
+  // tocando su propia escala.
   step(sirenas, globalK, dt, noiseOmega = 0) {
     this.prevTheta = this.theta;
     let coupling = 0;
@@ -54,51 +69,47 @@ export class Sirena {
     for (const other of sirenas) {
       if (other === this) continue;
       const dist = Math.abs(this.x - other.x);
-      // "Distancia mítica": el acoplamiento decae con la distancia visual.
       const spatial = Math.exp(-dist / 220);
       const localFactor = spatial * (1 - this.disturbance) * (1 - other.disturbance);
       coupling += localFactor * Math.sin(other.theta - this.theta);
     }
 
-    const dtheta = this.omega + noiseOmega + (globalK / n) * coupling;
+    const effectiveOmega = this.omega * this.omegaMultiplier;
+    const dtheta = effectiveOmega + noiseOmega + (globalK / n) * coupling;
     this.phaseVelocity = dtheta;
-    this.theta = (this.theta + dtheta * dt) % (Math.PI * 2);
-    if (this.theta < 0) this.theta += Math.PI * 2;
+    this.theta = (this.theta + dtheta * dt) % TAU;
+    if (this.theta < 0) this.theta += TAU;
 
-    // cruce por cero: dispara el canto (ritmo emergente, no un metrónomo)
-    this.justCrossedZero = this.prevTheta > Math.PI * 1.5 && this.theta < Math.PI * 0.5;
+    this.prevNoteIndex = this.noteIndex;
+    this.noteIndex = this.currentNoteIndex();
+    this.justChangedNote = this.noteIndex !== this.prevNoteIndex;
 
-    // la perturbación decae sola: la sirena vuelve a estar disponible
-    // para el acoplamiento y el coro puede "tirar" de ella otra vez.
+    // La perturbación decae sola: la sirena vuelve a estar disponible para
+    // el acoplamiento y el coro puede "tirar" de ella otra vez.
     this.disturbance = Math.max(0, this.disturbance - dt * 0.6);
 
-    this.y = this.baseY + this.yOffset;
-    if (this.justCrossedZero) this.singPulse = 1;
+    this.y = this.baseY;
+    if (this.justChangedNote) this.singPulse = 1;
     this.singPulse = Math.max(0, this.singPulse - dt * 2.2);
   }
 
-  // Progreso 0..1 de su ola en el carril: 0 = acaba de reiniciar arriba,
-  // 1 = a punto de llegar a la costa. Es theta, sin más — nada se simula aparte.
-  waveProgress() {
-    return this.theta / (Math.PI * 2);
-  }
-
-  kick(amount) {
-    this.theta = (this.theta + amount) % (Math.PI * 2);
-    if (this.theta < 0) this.theta += Math.PI * 2;
+  // El Navegante manipula manualmente en qué nota está: la avanza un paso
+  // en su recorrido de ida y vuelta (1/6 de un ciclo completo).
+  advanceNote() {
+    this.theta = (this.theta + TAU / 6) % TAU;
   }
 
   disturb(amount) {
     this.disturbance = Math.min(1, this.disturbance + amount);
   }
 
-  // El Navegante puede correr un poco a cada sirena de su sitio: cambia su
-  // distancia mítica con las vecinas (x) y cuándo la alcanza la superficie
-  // (yOffset). El rango es corto a propósito — sigue siendo su mismo lugar
-  // en el coro, no puede llevarla a otro lado del mar.
-  dragTo(px, py, xRange = 70, yRange = 40) {
+  // Arrastre limitado: horizontal cambia su distancia mítica con las
+  // vecinas (x); vertical acelera o frena su propio ciclo (omega).
+  dragTo(px, py, xRange = 70, yRange = 100) {
     this.x = Math.max(this.homeX - xRange, Math.min(this.homeX + xRange, px));
-    this.yOffset = Math.max(-yRange, Math.min(yRange, py - this.homeY));
+    const dy = Math.max(-yRange, Math.min(yRange, py - this.homeY));
+    // arriba (dy negativo) = más rápido; abajo = más lento.
+    this.omegaMultiplier = Math.max(0.4, Math.min(2.5, 1 - dy / yRange));
   }
 }
 

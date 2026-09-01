@@ -5,64 +5,70 @@ Prueba de concepto para el reto de Unidad 4 (modelo de Kuramoto) del curso
 
 ## Concepto
 
-Un coro de 8 sirenas emerge del mar. Cada una es un oscilador acoplado:
+Un coro de 8 sirenas, cada una un agente/oscilador distinto con su propia
+escala de 4 notas y su propio timbre — no hay personalidades compartidas
+entre agentes, cada una es única:
 
-- **θᵢ (fase)**: el punto de su ciclo de respiración/canto (inspiración →
-  nota → silencio). Se mapea directamente a la posición del frente de su
-  ola en su carril (`θ/2π` de recorrido entre el mar abierto arriba y la
-  costa abajo) y dispara su voz cada vez que cruza por cero.
-- **ωᵢ (frecuencia natural)**: su registro/temperamento base. Cada
-  personalidad tiene un registro característico, y cada individuo dentro de
-  esa personalidad tiene una variación propia.
-- **K (acoplamiento)**: la "Marea" — controlada en vivo con el slider. A
-  diferencia del Kuramoto clásico (todos-con-todos por igual), aquí el
-  acoplamiento entre dos sirenas decae con su **distancia visual** ("distancia
-  mítica"): las que están cerca en el mar se escuchan mejor. Esto es lo que
-  permite que se formen "corros" parciales en vez de saltar directo de
-  desorden a sincronía total.
+1. **Lira** (cuerda frotada grave) — C2, G2, C3, G3
+2. **Pipa** (plucked tradicional) — A2, C3, E3, A3
+3. **Xilófono** (percusión brillante) — E3, G3, B3, E4
+4. **Viento** (flauta de bambú) — G3, A3, D4, E4
+5. **Metal** (tazón tibetano) — C4, D4, G4, A4
+6. **Arpa** (cuerda pulsada) — E4, G4, B4, D5
+7. **Campana** (Glockenspiel) — G4, A4, C5, E5
+8. **Sintetizador** (textura ambiental áurea) — B4, D5, E5, G5
 
-Las **4 personalidades audiovisuales** (Melismática, Staccato, Dronera,
-Brillante) definen forma, tipo de movimiento, ataque/decay sonoro y timbre.
-Cada una tiene 2 individuos con su propio registro (ω), tamaño y matiz de
-color — 8 identidades reconocibles, no 4 repetidas.
+- **θᵢ (fase)**: en qué punto de su ciclo está la sirena — no un ángulo
+  abstracto, sino literalmente **en cuál de sus 4 notas se encuentra**. El
+  recorrido es de ida y vuelta (péndulo): sube de la nota 1 a la 4 en la
+  primera mitad del ciclo y baja de vuelta de la 4 a la 1 en la segunda
+  mitad. Un giro completo de θ (0→2π) es un recorrido completo de ida y
+  vuelta por su escala.
+- **ωᵢ (frecuencia natural)**: cuánto se demora esa sirena en completar su
+  recorrido de ida y vuelta — su tempo propio, distinto para cada agente.
+- **K (acoplamiento)**: la "Marea". No sincroniza el *tono* (cada sirena
+  sigue tocando su propia escala) sino el **ritmo de subida y bajada de
+  nota** — con K alto, todas terminan subiendo y bajando de nota al mismo
+  compás, aunque cada una diga algo distinto con su voz. La sincronía
+  **emerge**, nunca se fuerza: el acoplamiento solo empuja, no fija el
+  resultado.
+- **Extensión justificada**: el acoplamiento no es todos-con-todos por
+  igual — decae con la **distancia visual** entre sirenas ("distancia
+  mítica"). Esto es lo que permite que se formen corros parciales en vez de
+  saltar directo de desorden a sincronía total.
+- **r (parámetro de orden)**: qué tan alineado está ese ritmo colectivo de
+  cambio de nota. 0 = cada quien a su compás, 1 = todas cambiando de nota
+  exactamente juntas.
 
-## La ola: por qué Kuramoto está íntegramente visible
+## Por qué Kuramoto está íntegramente visible
 
-Cada sirena tiene su propio **carril vertical**, independiente de las demás
-(inspirado en el experimento [Rhythm de Chrome Music Lab](https://musiclab.chromeexperiments.com/Rhythm/):
-varios carriles bajando a su propio ritmo, cuya interacción produce el patrón
-colectivo). El frente que baja por su carril **no es un objeto físico
-simulado aparte**: su posición es literalmente `θ_i / 2π` — el mismo ángulo
-que ya gobierna todo lo demás. Cuando `θ_i` completa una vuelta (el mismo
-cruce por cero que dispara su canto), el frente llega a la costa, se dispersa
-ahí, y un nuevo frente arranca desde arriba. Si dos sirenas están acopladas,
-sus frentes bajan al mismo ritmo porque sus `θ` reales ya están alineadas —
-no hay ninguna capa intermedia que sincronizar aparte, ni un reloj que
-reemplace al modelo. La suma de Kuramoto ponderada por distancia
-(`(K/N)·Σ spatial(i,j)·sin(θⱼ−θᵢ)`, en [`sirena.js`](src/simulation/sirena.js))
-sigue siendo la única ecuación que mueve las fases; el carril es su
-representación directa, no una aproximación ni un reemplazo.
+La escalera de 4 peldaños que se dibuja sobre cada sirena **no es una
+animación aparte**: el marcador que sube y baja por ella es literalmente
+`notePosition()`, una reformulación directa de `θ_i` (`3 - |6·(θ/2π) − 3|`,
+el mismo péndulo de ida y vuelta). La suma de Kuramoto ponderada por
+distancia (`(K/N)·Σ spatial(i,j)·sin(θⱼ−θᵢ)`, en
+[`sirena.js`](src/simulation/sirena.js)) sigue siendo la única ecuación que
+mueve las fases — la escalera es su lectura directa, no una aproximación.
+Cada vez que el marcador cruza un peldaño entero, esa sirena canta esa
+nota — el ritmo del canto emerge de θ real, no de un reloj aparte.
 
-Mover una sirena de su sitio solo cambia **su propio carril** (su distancia
-mítica con las vecinas). Nunca reposiciona a otra — si otro carril cambia de
-ritmo después de mover una, es porque el acoplamiento real hizo que su `θ`
-cambiara con el tiempo, no porque el arrastre la haya movido directamente.
+Mover una sirena solo cambia **su propio ciclo**: arrastrar en horizontal
+cambia su distancia mítica con las vecinas (afecta cuánto le pesa el
+acoplamiento); arrastrar en vertical acelera o frena su propio ω. Ninguna
+de las dos reposiciona a otra sirena directamente — si otra cambia de ritmo
+después, es porque el acoplamiento real tiró de su θ con el tiempo.
 
 ## Interacciones
 
 - **Slider "Marea" (K)**: control global obligatorio del modelo.
-- **Clic sobre una sirena** — *El Grito de Ulises*: perturbación individual,
-  la desfasa +π/2 del grupo (se ve como su frente saltando de posición en su
-  propio carril).
-- **Arrastrar una sirena**: mueve un poco su sitio (rango corto, no la sueltas
-  en otro lugar del mar) — cambia su distancia mítica con las vecinas (x) y
-  su profundidad de costa (y), sin afectar directamente a ninguna otra.
+- **Clic sobre una sirena**: el Navegante manipula manualmente en qué nota
+  está — la avanza un paso en su recorrido de ida y vuelta.
+- **Arrastrar una sirena**: horizontal cambia su distancia mítica con las
+  vecinas; vertical acelera/frena su ω (su tempo propio).
 - **Clic sobre el mar** — *piedra en el agua*: mecanismo de perturbación.
-  Genera un frente de onda real que viaja horizontalmente; al pasar por una
-  sirena le da un golpe de fase y la desconecta brevemente del acoplamiento
-  ("rompe el agua que las une"). El efecto se ve directamente como un salto
-  en su carril — no hay una animación paralela dibujando el golpe, es el
-  mismo carril reaccionando a la θ real que cambió.
+  Genera un frente que viaja y, al pasar por una sirena, le baja
+  temporalmente su K efectiva — se desconecta un rato del ritmo del coro
+  antes de que el resto la vuelva a jalar (si K global es suficiente).
 - **Faro** (esquina inferior izquierda): indicador del parámetro de orden
   `r` — rojo parpadeante en desorden, amarillo intermitente en organización
   parcial, blanco fijo (con haz de luz) en organización estable.
@@ -90,7 +96,7 @@ Actions).
 
 ## Estado del prototipo
 
-Esto es una base de pruebas de concepto: el modelo, las 4 personalidades y
-las 3 interacciones mínimas ya funcionan. Pendiente de iterar: diseño
-sonoro más fino por personalidad, texturas visuales (partículas, estelas),
-y ajuste de las constantes de acoplamiento espacial/perturbación.
+El modelo, los 8 agentes con su escala/timbre propio, y las interacciones
+mínimas ya funcionan. Pendiente de iterar: diseño visual más elaborado por
+agente, y afinar las constantes de acoplamiento espacial/perturbación con
+más tiempo de prueba.
