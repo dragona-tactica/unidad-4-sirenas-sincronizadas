@@ -8,7 +8,9 @@ import liraSvgRaw from '../assets/lira-sirena.svg?raw';
 // su theta real (nunca un reloj aparte):
 // - grupo_brazo_mano_w: gira como un solo bloque rígido desde el codo,
 //   siguiendo notePosition() (0..3, el mismo péndulo de la escalera de
-//   notas), con un golpe extra en justChangedNote.
+//   notas) -- sin golpe de singPulse encima: ese golpe salta de 0 a 1 en
+//   un solo frame (por diseño, para el destello), y sumarlo a una rotación
+//   continua se sentía como un salto en vez de un movimiento fluido.
 // - cola y pelo: oscilan con sin(theta) directamente, como el bobbing
 //   original -- misma idea, aplicada como rotación en vez de posición Y.
 const VIEW_W = 376.53;
@@ -66,7 +68,7 @@ export function createLiraOverlay() {
       if (brazoMano) {
         // notePosition(): 0..3 de ida y vuelta -- el mismo péndulo real.
         const f = sirena.notePosition() / 3; // 0..1
-        const angle = (f - 0.5) * SWEEP_ANGLE - sirena.singPulse * 5;
+        const angle = (f - 0.5) * SWEEP_ANGLE;
         brazoMano.setAttribute('transform', `rotate(${angle.toFixed(2)} ${ELBOW.x} ${ELBOW.y})`);
       }
 
