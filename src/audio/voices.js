@@ -8,12 +8,15 @@ import * as Tone from 'tone';
 const RECIPES = {
   lira: {
     kind: 'note',
-    duration: 1.6,
+    // Antes: attack 0.5 + release 1.8 (~2.3s de cola) sonaba más largo que
+    // el tiempo entre sus propios cambios de nota, así que las notas se
+    // acumulaban unas sobre otras y nunca había silencio real entre ellas.
+    duration: 0.4,
     build: (master) =>
       new Tone.MonoSynth({
         oscillator: { type: 'fatsawtooth', count: 2, spread: 15 },
-        envelope: { attack: 0.5, decay: 0.3, sustain: 0.8, release: 1.8 },
-        filterEnvelope: { attack: 0.5, decay: 0.4, sustain: 0.6, release: 1.8, baseFrequency: 200, octaves: 2 },
+        envelope: { attack: 0.15, decay: 0.2, sustain: 0.25, release: 0.4 },
+        filterEnvelope: { attack: 0.15, decay: 0.2, sustain: 0.3, release: 0.4, baseFrequency: 200, octaves: 2 },
       }).connect(new Tone.Vibrato(4.5, 0.15).connect(master)),
   },
   pipa: {
