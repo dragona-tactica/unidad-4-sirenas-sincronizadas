@@ -22,16 +22,20 @@ const LIRA_DX = -160;
 const LIRA_DY = -10;
 
 // Punto de la propia mano (en sus coordenadas originales del SVG) que hace
-// de muñeca -- el borde donde se uniría al antebrazo. Medido con getBBox():
-// mano_derecha ocupa x408-495.8, y152.1-195.5.
-const WRIST = { x: 408, y: 173.8 };
+// de muñeca/puño -- el borde por donde se une al antebrazo. brazo_derecho
+// ya trae dibujada una mano apoyada en la cadera; visualmente esa mano
+// mira hacia la izquierda con el puño del lado derecho de su silueta, así
+// que el punto de unión de mano_derecha (x408-495.8, y152.1-195.5) es su
+// borde DERECHO, no el izquierdo.
+const WRIST = { x: 495.8, y: 173.8 };
 
-// El codo: cerca del costado/cadera, de donde ya sale el brazo dibujado en
-// el cuerpo (brazo_derecho). Desde ahí, un barrido de rotación alcanza la
-// lira ya reubicada sobre el pecho, sin trasladar la mano en línea recta.
-const ELBOW = { x: 105, y: 265 };
-const BASE_ANGLE = 0; // grados, pose de descanso apuntando a las cuerdas
-const SWEEP_ANGLE = 24; // grados, barrido adicional al tocar
+// El codo/muñeca real: medido directamente sobre el renderizado (no solo
+// el bbox) -- la mano que brazo_derecho ya dibuja apoyada en la cadera
+// cae en ~(242,291). Enganchar mano_derecha ahí, en el mismo sitio donde
+// el brazo realmente termina, es lo que evita la costura/salto visual.
+const ELBOW = { x: 242, y: 291 };
+const BASE_ANGLE = 12; // grados, pose de descanso apuntando a las cuerdas
+const SWEEP_ANGLE = 20; // grados, barrido adicional al tocar
 
 // Puntos de anclaje para la cola y el pelo (donde se unen al torso/cabeza).
 const TAIL_PIVOT = { x: 200, y: 324 };
