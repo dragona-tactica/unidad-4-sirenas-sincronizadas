@@ -4,6 +4,9 @@ import { AGENTS } from './simulation/agents.js';
 import { Sirena, computeOrderParameter } from './simulation/sirena.js';
 import { Ripple } from './simulation/ripple.js';
 import { createMaster, createVoice, triggerSirena } from './audio/voices.js';
+import { createLiraOverlay } from './visuals/liraOverlay.js';
+
+const liraOverlay = createLiraOverlay();
 
 let sirenas = [];
 let ripples = [];
@@ -258,7 +261,16 @@ const sketch = (p) => {
       p.circle(ripple.x, p.height * 0.62, ripple.radius * 2);
     }
 
-    for (const s of sirenas) drawSirena(p, s);
+    for (const s of sirenas) {
+      // La Lira usa la ilustración SVG (ver visuals/liraOverlay.js) en vez
+      // del dibujo procedural -- el resto del modelo (ladder, audio, K,
+      // arrastre) sigue siendo exactamente el mismo para ella.
+      if (s.agent.id === 'lira') {
+        liraOverlay.update(s);
+      } else {
+        drawSirena(p, s);
+      }
+    }
 
     const { r } = computeOrderParameter(sirenas);
     drawFaro(p, r);
