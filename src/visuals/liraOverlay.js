@@ -1,45 +1,30 @@
 import liraSvgRaw from '../assets/lira-sirena.svg?raw';
 
 // La ilustración de la Lira vive como SVG real en el DOM, encima del canvas
-// de p5 -- no como dibujo procedural. En el archivo original, la lira y la
-// mano quedaron sueltas en el lienzo (lejos del cuerpo); según el boceto de
-// referencia del usuario, la lira debe quedar sostenida contra el pecho, no
-// flotando al costado. Se reubica la lira completa como una unidad, y la
-// mano se engancha encima con un pivote en el codo (no una traslación
-// recta). Todo lo animado sale de su theta real (nunca un reloj aparte):
-// - mano_derecha: pivota desde el codo, barriendo las cuerdas siguiendo
-//   notePosition() (0..3, el mismo péndulo de la escalera de notas), con
-//   un golpe extra en justChangedNote.
+// de p5 -- no como dibujo procedural. El propio archivo ya trae el brazo y
+// la mano agrupados como una sola pieza (grupo_brazo_mano_w), conectados
+// entre sí, y la lira (lira_W) ya posicionada contra su vientre -- no hace
+// falta recalcular ninguna alineación: solo animar. Todo lo animado sale de
+// su theta real (nunca un reloj aparte):
+// - grupo_brazo_mano_w: gira como un solo bloque rígido desde el codo,
+//   siguiendo notePosition() (0..3, el mismo péndulo de la escalera de
+//   notas), con un golpe extra en justChangedNote.
 // - cola y pelo: oscilan con sin(theta) directamente, como el bobbing
 //   original -- misma idea, aplicada como rotación en vez de posición Y.
-const VIEW_W = 495.84;
+const VIEW_W = 376.53;
 const VIEW_H = 757.61;
 const DISPLAY_H = 150; // alto en pantalla, en px
 
-// La lira (medida con getBBox(): centro original ~349.8,289.5) se traslada
-// como un bloque hasta el pecho (centro del grupo "top", ~209,250.2).
-const LIRA_DX = -160;
-const LIRA_DY = -10;
-
-// Punto de la propia mano (en sus coordenadas originales del SVG) que hace
-// de muñeca/puño -- el borde por donde se une al antebrazo. brazo_derecho
-// ya trae dibujada una mano apoyada en la cadera; visualmente esa mano
-// mira hacia la izquierda con el puño del lado derecho de su silueta, así
-// que el punto de unión de mano_derecha (x408-495.8, y152.1-195.5) es su
-// borde DERECHO, no el izquierdo.
-const WRIST = { x: 495.8, y: 173.8 };
-
-// El codo/muñeca real: medido directamente sobre el renderizado (no solo
-// el bbox) -- la mano que brazo_derecho ya dibuja apoyada en la cadera
-// cae en ~(242,291). Enganchar mano_derecha ahí, en el mismo sitio donde
-// el brazo realmente termina, es lo que evita la costura/salto visual.
-const ELBOW = { x: 242, y: 291 };
-const BASE_ANGLE = 12; // grados, pose de descanso apuntando a las cuerdas
-const SWEEP_ANGLE = 20; // grados, barrido adicional al tocar
+// Codo: donde grupo_brazo_mano_w (x51.6-241, y274.2-316.9, medido con
+// getBBox()) se separó del torso -- su borde izquierdo, junto a las
+// costillas. El antebrazo+mano es la pieza que se agrupó; el brazo
+// superior hasta el hombro sigue siendo parte del torso fijo.
+const ELBOW = { x: 55, y: 285 };
+const SWEEP_ANGLE = 14; // grados, barrido del brazo completo al tocar
 
 // Puntos de anclaje para la cola y el pelo (donde se unen al torso/cabeza).
 const TAIL_PIVOT = { x: 200, y: 324 };
-const HAIR_PIVOT = { x: 180, y: 58 };
+const HAIR_PIVOT = { x: 160, y: 58 };
 const TAIL_AMPLITUDE = 4; // grados
 const HAIR_AMPLITUDE = 3; // grados
 const HAIR_LAG = 0.6; // rad, el pelo va un poco detrás de la cola
@@ -55,14 +40,11 @@ export function createLiraOverlay() {
   document.body.appendChild(container);
 
   const svg = container.querySelector('svg');
-  const mano = container.querySelector('#mano_derecha');
-  const lira = container.querySelector('#lira');
+  const brazoMano = container.querySelector('#grupo_brazo_mano_w');
   const cola = container.querySelector('#cola');
   const pelo = container.querySelector('#pelo');
   const scale = DISPLAY_H / VIEW_H;
   const displayW = VIEW_W * scale;
-  const dx = ELBOW.x - WRIST.x;
-  const dy = ELBOW.y - WRIST.y;
 
   svg.style.position = 'absolute';
   svg.style.left = '0';
@@ -70,8 +52,6 @@ export function createLiraOverlay() {
   svg.style.width = `${displayW}px`;
   svg.style.height = `${DISPLAY_H}px`;
   svg.style.overflow = 'visible';
-
-  if (lira) lira.setAttribute('transform', `translate(${LIRA_DX},${LIRA_DY})`);
 
   return {
     displayW,
@@ -83,17 +63,11 @@ export function createLiraOverlay() {
       const top = sirena.y - DISPLAY_H;
       container.style.transform = `translate(${left}px, ${top}px)`;
 
-      if (mano) {
+      if (brazoMano) {
         // notePosition(): 0..3 de ida y vuelta -- el mismo péndulo real.
         const f = sirena.notePosition() / 3; // 0..1
-        const angle = BASE_ANGLE + (f - 0.5) * SWEEP_ANGLE - sirena.singPulse * 8;
-        // Rota primero alrededor de su propia muñeca (queda en el mismo
-        // sitio relativo a la mano), y ESE resultado se traslada al codo --
-        // así el pivote de giro es siempre el punto de unión con el brazo.
-        mano.setAttribute(
-          'transform',
-          `translate(${dx.toFixed(2)},${dy.toFixed(2)}) rotate(${angle.toFixed(2)} ${WRIST.x} ${WRIST.y})`
-        );
+        const angle = (f - 0.5) * SWEEP_ANGLE - sirena.singPulse * 5;
+        brazoMano.setAttribute('transform', `rotate(${angle.toFixed(2)} ${ELBOW.x} ${ELBOW.y})`);
       }
 
       if (cola) {
