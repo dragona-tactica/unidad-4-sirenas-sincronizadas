@@ -5,8 +5,14 @@ import { Sirena, computeOrderParameter } from './simulation/sirena.js';
 import { Ripple } from './simulation/ripple.js';
 import { createMaster, createVoice, triggerSirena } from './audio/voices.js';
 import { createLiraOverlay } from './visuals/liraOverlay.js';
+import { createVientoOverlay } from './visuals/vientoOverlay.js';
 
-const liraOverlay = createLiraOverlay();
+// Registro de sirenas con ilustración propia (SVG animado en el DOM) --
+// las que no aparecen aquí siguen con la forma procedural de drawSirena().
+const illustratedOverlays = {
+  lira: createLiraOverlay(),
+  viento: createVientoOverlay(),
+};
 
 let sirenas = [];
 let ripples = [];
@@ -262,11 +268,12 @@ const sketch = (p) => {
     }
 
     for (const s of sirenas) {
-      // La Lira usa la ilustración SVG (ver visuals/liraOverlay.js) en vez
-      // del dibujo procedural -- el resto del modelo (ladder, audio, K,
-      // arrastre) sigue siendo exactamente el mismo para ella.
-      if (s.agent.id === 'lira') {
-        liraOverlay.update(s);
+      // Las sirenas con ilustración propia usan su SVG animado (ver
+      // visuals/) en vez del dibujo procedural -- el resto del modelo
+      // (ladder, audio, K, arrastre) sigue siendo exactamente el mismo.
+      const overlay = illustratedOverlays[s.agent.id];
+      if (overlay) {
+        overlay.update(s);
       } else {
         drawSirena(p, s);
       }
