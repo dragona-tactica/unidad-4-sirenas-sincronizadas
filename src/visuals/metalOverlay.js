@@ -9,16 +9,16 @@ import { createCharacterOverlay } from './characterOverlay.js';
 // - cola: se une al torso en ~(160,328). El pelo viene en dos grupos
 //   (pelo + pelo-2, mechones de fondo y delanteros) -- ambos se mueven
 //   juntos con el mismo pivote, ~(145,50).
+// El hombro (borde izquierdo de pecho_w-2, x0,y176-276) es el pivote real --
+// gira ahí, nunca se traslada. Medido en vivo: rotate(20, 2, 225) mueve la
+// mano -8.3px horizontal y solo 0.5px vertical.
 export function createMetalOverlay() {
   return createCharacterOverlay({
     svgRaw: metalSvgRaw,
     viewW: 320,
     viewH: 730,
-    elbow: { x: 170, y: 285 },
-    // El mazo recorre el borde del cuenco de lado a lado -- deslizar en
-    // horizontal, no girar desde el codo (mismo motivo que el xilófono).
-    sweepMode: 'translateX',
-    sweepDistance: 40,
+    elbow: { x: 2, y: 225 },
+    sweepAngle: 20,
     tailPivot: { x: 160, y: 328 },
     hairSelector: '#pelo',
     hairPivot: { x: 145, y: 50 },
