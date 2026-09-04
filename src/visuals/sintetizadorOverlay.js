@@ -18,7 +18,12 @@ export function createSintetizadorOverlay() {
     viewW: 368,
     viewH: 720,
     elbow: { x: 200, y: 290 },
-    sweepAngle: 14,
+    // Los dedos tocan distintos pads de lado a lado sobre la superficie --
+    // deslizar en horizontal, no girar desde el codo (mismo motivo que el
+    // xilófono/cuenco: ese brazo ancho y horizontal rotado desde un
+    // extremo levantaba la mano del pad en vez de recorrerlo).
+    sweepMode: 'translateX',
+    sweepDistance: 40,
     tailPivot: { x: 200, y: 328 },
     hairSelector: '#pelo_sinte',
     hairPivot: { x: 180, y: 60 },

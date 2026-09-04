@@ -18,7 +18,7 @@ export function createXilofonoOverlay() {
     // horizontal, no girar desde el codo (esa forma de brazo, ancha y casi
     // horizontal, movería la mano sobre todo vertical si se rotara).
     sweepMode: 'translateX',
-    sweepDistance: 14,
+    sweepDistance: 45,
     tailPivot: { x: 160, y: 328 },
     hairSelector: '#pelo_nuevo',
     hairPivot: { x: 145, y: 45 },
