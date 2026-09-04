@@ -16,6 +16,11 @@ import { createCharacterOverlay } from './characterOverlay.js';
 // debajo, que era el error -- la sirena quedaba flotando sobre un vacío en
 // vez de sentada), dejando ese margen para que la cola se vea apoyada en su
 // borde superior y siga bajando hasta el piso como en la referencia.
+//
+// glowOnDisturbance: la roca se ilumina con sirena.disturbance (real, sube
+// cuando la piedra lanzada al mar la golpea) -- así se ve claramente CUÁL
+// sirena acaba de perder acoplamiento por la piedra, sin tocar el color de
+// la sirena misma.
 export function createRockOverlay() {
   return createCharacterOverlay({
     svgRaw: rocaSvgRaw,
@@ -27,5 +32,6 @@ export function createRockOverlay() {
     armGroupSelector: null,
     tailSelector: null,
     hairSelector: null,
+    glowOnDisturbance: true,
   });
 }

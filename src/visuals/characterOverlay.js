@@ -44,6 +44,11 @@ export function createCharacterOverlay({
   hairSelector2,
   hairPivot2,
   hairAmplitude2,
+  // Si se activa, la roca se ilumina con sirena.disturbance (0..1, real --
+  // sube cuando la piedra lanzada al mar la golpea y baja su K efectiva;
+  // decae sola en sirena.step()). Es la señal visible de "aquí pegó la
+  // piedra y esta sirena se desacopló un rato del coro".
+  glowOnDisturbance = false,
 }) {
   const container = document.createElement('div');
   container.style.position = 'fixed';
@@ -117,6 +122,15 @@ export function createCharacterOverlay({
         const amp2 = hairAmplitude2 ?? hairAmplitude;
         const angle2 = Math.sin(sirena.theta - hairLag) * amp2;
         pelo2.setAttribute('transform', `rotate(${angle2.toFixed(2)} ${pivot2.x} ${pivot2.y})`);
+      }
+
+      if (glowOnDisturbance) {
+        const d = sirena.disturbance ?? 0;
+        if (d > 0.01) {
+          svg.style.filter = `brightness(${(1 + d * 1.3).toFixed(2)}) drop-shadow(0 0 ${(6 + d * 14).toFixed(1)}px rgba(255, 235, 160, ${(d * 0.9).toFixed(2)}))`;
+        } else {
+          svg.style.filter = '';
+        }
       }
     },
   };

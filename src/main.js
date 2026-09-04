@@ -39,6 +39,8 @@ for (const agent of AGENTS) {
 
 let sirenas = [];
 let ripples = [];
+let bubbles = [];
+let fishes = [];
 let audioStarted = false;
 let audioMaster = null;
 let globalK = 0.5;
@@ -294,6 +296,92 @@ function drawLightRays(p, r) {
   p.pop();
 }
 
+// Burbujas ambiente: decoración de fondo, igual que los rayos de luz. La
+// tasa de aparición sí depende de K (la Marea real, no un valor inventado)
+// -- más acoplamiento, más turbulencia visible en el agua.
+function spawnBubbles(p, k) {
+  const chance = 0.02 + k * 0.06;
+  if (Math.random() < chance) {
+    bubbles.push({
+      x: Math.random() * p.width,
+      y: p.height + 10,
+      r: 2 + Math.random() * 4,
+      speed: 18 + Math.random() * 22,
+      wobbleFreq: 0.8 + Math.random() * 1.2,
+      wobbleAmp: 6 + Math.random() * 10,
+      phase: Math.random() * Math.PI * 2,
+      bornAt: p.frameCount,
+    });
+  }
+}
+
+function updateAndDrawBubbles(p, dt) {
+  const t = p.frameCount * 0.016;
+  p.push();
+  p.noStroke();
+  for (const b of bubbles) {
+    b.y -= b.speed * dt;
+    const age = (p.frameCount - b.bornAt) / 60;
+    const fadeIn = Math.min(1, age * 2);
+    const fadeOut = Math.min(1, (b.y - 40) / 120);
+    const alpha = 90 * Math.max(0, Math.min(fadeIn, fadeOut));
+    const x = b.x + Math.sin(t * b.wobbleFreq + b.phase) * b.wobbleAmp;
+
+    p.fill(220, 245, 255, alpha);
+    p.circle(x, b.y, b.r * 2);
+    p.fill(255, 255, 255, alpha * 0.8);
+    p.circle(x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.6);
+  }
+  p.pop();
+  bubbles = bubbles.filter((b) => b.y > -20);
+}
+
+// Peces ocasionales cruzando de fondo: siluetas simples, sin relación con
+// ninguna sirena -- solo fauna de escena, como los rayos y las burbujas.
+function maybeSpawnFish(p) {
+  if (Math.random() < 0.003 && fishes.length < 4) {
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    fishes.push({
+      x: dir === 1 ? -40 : p.width + 40,
+      y: p.height * (0.15 + Math.random() * 0.35),
+      dir,
+      speed: 30 + Math.random() * 35,
+      size: 10 + Math.random() * 14,
+      phase: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function updateAndDrawFish(p, dt) {
+  const t = p.frameCount * 0.1;
+  p.push();
+  p.noStroke();
+  for (const f of fishes) {
+    f.x += f.dir * f.speed * dt;
+    const bob = Math.sin(t + f.phase) * 4;
+    const y = f.y + bob;
+    const wiggle = Math.sin(t * 3 + f.phase) * 0.35;
+
+    p.push();
+    p.translate(f.x, y);
+    p.scale(f.dir, 1);
+    p.fill(30, 55, 75, 90);
+    p.beginShape();
+    p.vertex(-f.size, 0);
+    p.vertex(-f.size * 0.3, -f.size * 0.4);
+    p.vertex(f.size, 0);
+    p.vertex(-f.size * 0.3, f.size * 0.4);
+    p.endShape(p.CLOSE);
+    p.push();
+    p.rotate(wiggle);
+    p.triangle(-f.size, 0, -f.size * 1.6, -f.size * 0.35, -f.size * 1.6, f.size * 0.35);
+    p.pop();
+    p.pop();
+  }
+  p.pop();
+  fishes = fishes.filter((f) => f.x > -60 && f.x < p.width + 60);
+}
+
 function drawFaro(p, r) {
   const cx = 50;
   const cy = p.height - 50;
@@ -356,6 +444,11 @@ const sketch = (p) => {
 
     const { r: syncR } = computeOrderParameter(sirenas);
     drawLightRays(p, syncR);
+
+    spawnBubbles(p, globalK);
+    updateAndDrawBubbles(p, dt);
+    maybeSpawnFish(p);
+    updateAndDrawFish(p, dt);
 
     ripples = ripples.filter((r) => !r.dead);
     for (const ripple of ripples) ripple.step(sirenas, dt);
