@@ -34,13 +34,19 @@ export function createCharacterOverlay({
   container.style.top = '0';
   container.style.pointerEvents = 'none';
   container.style.zIndex = '5';
-  container.innerHTML = svgRaw;
   document.body.appendChild(container);
 
-  const svg = container.querySelector('svg');
-  const brazoMano = armGroupSelector ? container.querySelector(armGroupSelector) : null;
-  const cola = tailSelector ? container.querySelector(tailSelector) : null;
-  const pelo = hairSelector ? container.querySelector(hairSelector) : null;
+  // Illustrator exporta las clases de color con nombres genéricos (.cls-1,
+  // .cls-2, ...) en cada archivo. Sin aislar, el <style> de una sirena
+  // pisa los colores de otra si comparten el mismo número de clase --
+  // el shadow DOM encapsula el CSS de cada una por separado.
+  const shadow = container.attachShadow({ mode: 'open' });
+  shadow.innerHTML = svgRaw;
+
+  const svg = shadow.querySelector('svg');
+  const brazoMano = armGroupSelector ? shadow.querySelector(armGroupSelector) : null;
+  const cola = tailSelector ? shadow.querySelector(tailSelector) : null;
+  const pelo = hairSelector ? shadow.querySelector(hairSelector) : null;
   const scale = displayH / viewH;
   const displayW = viewW * scale;
 
