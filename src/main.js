@@ -6,12 +6,15 @@ import { Ripple } from './simulation/ripple.js';
 import { createMaster, createVoice, triggerSirena } from './audio/voices.js';
 import { createLiraOverlay } from './visuals/liraOverlay.js';
 import { createVientoOverlay } from './visuals/vientoOverlay.js';
+import { createPipaOverlay } from './visuals/pipaOverlay.js';
 
-// Registro de sirenas con ilustración propia (SVG animado en el DOM) --
-// las que no aparecen aquí siguen con la forma procedural de drawSirena().
+// Registro de sirenas con ilustración propia (SVG animado en el DOM,
+// aislado por shadow DOM para que sus colores nunca se mezclen entre sí)
+// -- las que no aparecen aquí siguen con la forma procedural de drawSirena().
 const illustratedOverlays = {
   lira: createLiraOverlay(),
   viento: createVientoOverlay(),
+  pipa: createPipaOverlay(),
 };
 
 let sirenas = [];
