@@ -69,9 +69,15 @@ function buildSirenas(width, height) {
   const usableWidth = width - margin * 2;
   const total = AGENTS.length;
 
+  // Zigzag: una de cada dos queda más abajo, como en la referencia del
+  // usuario -- así la roca y la escalera de notas de cada una (ambas
+  // ancladas a su propio baseY) también siguen el mismo vaivén, en vez de
+  // quedar todas en una fila perfectamente plana.
+  const zigzagOffset = height * 0.05;
+
   for (let i = 0; i < total; i++) {
     const x = margin + (usableWidth * (i + 0.5)) / total;
-    const baseY = height * 0.62;
+    const baseY = height * 0.62 + (i % 2 === 1 ? zigzagOffset : 0);
     list.push(new Sirena({ agentIndex: i, x, baseY }));
   }
   return list;
