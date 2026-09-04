@@ -37,6 +37,11 @@ export function createCharacterOverlay({
   hairPivot,
   hairAmplitude = 3,
   hairLag = 0.6,
+  // Algunos personajes traen el pelo dividido en dos grupos (mechones de
+  // fondo + mechones delanteros); si se da, se mueve junto con el primero.
+  hairSelector2,
+  hairPivot2,
+  hairAmplitude2,
 }) {
   const container = document.createElement('div');
   container.style.position = 'fixed';
@@ -57,6 +62,7 @@ export function createCharacterOverlay({
   const brazoMano = armGroupSelector ? shadow.querySelector(armGroupSelector) : null;
   const cola = tailSelector ? shadow.querySelector(tailSelector) : null;
   const pelo = hairSelector ? shadow.querySelector(hairSelector) : null;
+  const pelo2 = hairSelector2 ? shadow.querySelector(hairSelector2) : null;
   const scale = displayH / viewH;
   const displayW = viewW * scale;
 
@@ -102,6 +108,13 @@ export function createCharacterOverlay({
       if (pelo && hairPivot) {
         const angle = Math.sin(sirena.theta - hairLag) * hairAmplitude;
         pelo.setAttribute('transform', `rotate(${angle.toFixed(2)} ${hairPivot.x} ${hairPivot.y})`);
+      }
+
+      if (pelo2 && (hairPivot2 || hairPivot)) {
+        const pivot2 = hairPivot2 || hairPivot;
+        const amp2 = hairAmplitude2 ?? hairAmplitude;
+        const angle2 = Math.sin(sirena.theta - hairLag) * amp2;
+        pelo2.setAttribute('transform', `rotate(${angle2.toFixed(2)} ${pivot2.x} ${pivot2.y})`);
       }
     },
   };
