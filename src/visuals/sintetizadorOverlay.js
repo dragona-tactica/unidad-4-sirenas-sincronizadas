@@ -8,15 +8,18 @@ import { createCharacterOverlay } from './characterOverlay.js';
 // armRestTransform.
 // - cola: se une al torso en ~(200,328). pelo_sinte: nace cerca de la
 //   cabeza, ~(180,60).
-// El hombro (borde izquierdo de pecho_w-2, x44,y175-273) es el pivote real --
-// gira ahí, nunca se traslada. Medido en vivo: rotate(20, 44, 224) mueve la
-// mano -6.4px horizontal y solo 0.5px vertical.
+// Pivote rehecho desde cero (el punto anterior, x44,y224, caía fuera del
+// parche real de pecho_w-2). Verificado con pecho_w-2.isPointInFill() que
+// el punto cae DENTRO del parche del hombro, barriendo candidatos vecinos
+// y midiendo el desplazamiento real de mano_derecha con
+// rotate(20, x, y) + getBoundingClientRect(). (123,200) da -178px
+// horizontal y solo 0.2px vertical -- prácticamente puro horizontal.
 export function createSintetizadorOverlay() {
   return createCharacterOverlay({
     svgRaw: sintetizadorSvgRaw,
     viewW: 368,
     viewH: 720,
-    elbow: { x: 44, y: 224 },
+    elbow: { x: 123, y: 200 },
     sweepAngle: 22,
     tailPivot: { x: 200, y: 328 },
     hairSelector: '#pelo_sinte',

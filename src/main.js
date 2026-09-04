@@ -11,6 +11,7 @@ import { createXilofonoOverlay } from './visuals/xilofonoOverlay.js';
 import { createMetalOverlay } from './visuals/metalOverlay.js';
 import { createArpaOverlay } from './visuals/arpaOverlay.js';
 import { createSintetizadorOverlay } from './visuals/sintetizadorOverlay.js';
+import { createCampanaOverlay } from './visuals/campanaOverlay.js';
 
 // Registro de sirenas con ilustración propia (SVG animado en el DOM,
 // aislado por shadow DOM para que sus colores nunca se mezclen entre sí)
@@ -23,6 +24,7 @@ const illustratedOverlays = {
   metal: createMetalOverlay(),
   arpa: createArpaOverlay(),
   sintetizador: createSintetizadorOverlay(),
+  campana: createCampanaOverlay(),
 };
 
 let sirenas = [];

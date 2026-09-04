@@ -10,16 +10,20 @@ import { createCharacterOverlay } from './characterOverlay.js';
 // como viene dibujado.
 // - cola: se une al torso en ~(160,328). pelo_xilo (antes "Objeto_generativo"):
 //   nace cerca de la cabeza, ~(145,35).
-// El hombro (borde izquierdo de pecho_w-2, x0,y178-284) es el pivote real --
-// gira ahí, nunca se traslada, así que el parche del hombro nunca se
-// despega del torso. Medido en vivo: rotate(20, 2, 230) mueve la mano
-// -8px horizontal y solo 0.5px vertical -- casi puramente horizontal.
+// Pivote rehecho desde cero (el punto anterior, x2,y230, caía fuera del
+// parche real de pecho_w-2 -- estaba en el borde de su bbox, no dentro de
+// la forma dibujada). Esta vez se verificó con pecho_w-2.isPointInFill()
+// que el punto cae DENTRO del parche del hombro, y se barrieron varios
+// candidatos vecinos midiendo el desplazamiento real de mano_derecha con
+// rotate(20, x, y) + getBoundingClientRect(). (73,202) da -94px horizontal
+// y solo 0.4px vertical -- prácticamente puro horizontal, con el hombro
+// siempre dentro de su propio parche (nunca se despega del torso).
 export function createXilofonoOverlay() {
   return createCharacterOverlay({
     svgRaw: xilofonoSvgRaw,
     viewW: 320,
     viewH: 750,
-    elbow: { x: 2, y: 230 },
+    elbow: { x: 73, y: 202 },
     sweepAngle: 20,
     tailPivot: { x: 160, y: 328 },
     hairSelector: '#pelo_xilo',

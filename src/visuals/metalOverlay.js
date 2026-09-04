@@ -9,15 +9,18 @@ import { createCharacterOverlay } from './characterOverlay.js';
 // - cola: se une al torso en ~(160,328). El pelo viene en dos grupos
 //   (pelo + pelo-2, mechones de fondo y delanteros) -- ambos se mueven
 //   juntos con el mismo pivote, ~(145,50).
-// El hombro (borde izquierdo de pecho_w-2, x0,y176-276) es el pivote real --
-// gira ahí, nunca se traslada. Medido en vivo: rotate(20, 2, 225) mueve la
-// mano -8.3px horizontal y solo 0.5px vertical.
+// Pivote rehecho desde cero (el punto anterior, x2,y225, caía fuera del
+// parche real de pecho_w-2). Verificado con pecho_w-2.isPointInFill() que
+// el punto cae DENTRO del parche del hombro, barriendo candidatos vecinos
+// y midiendo el desplazamiento real de mano_derecha con
+// rotate(20, x, y) + getBoundingClientRect(). (76,200) da -162px
+// horizontal y solo 0.2px vertical -- prácticamente puro horizontal.
 export function createMetalOverlay() {
   return createCharacterOverlay({
     svgRaw: metalSvgRaw,
     viewW: 320,
     viewH: 730,
-    elbow: { x: 2, y: 225 },
+    elbow: { x: 76, y: 200 },
     sweepAngle: 20,
     tailPivot: { x: 160, y: 328 },
     hairSelector: '#pelo',
