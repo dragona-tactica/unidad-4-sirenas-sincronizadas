@@ -24,6 +24,8 @@ export function createCharacterOverlay({
   viewW,
   viewH,
   displayH = 150,
+  zIndex = 5,
+  anchorY = 1, // fracción de displayH que queda POR ENCIMA de sirena.y (1 = todo arriba, como los personajes; <1 deja parte abajo, para la roca)
   armGroupSelector = '#grupo_brazo_mano_w',
   armRestTransform = '', // alineación fija (traslación/rotación) antes del barrido animado
   elbow,
@@ -48,7 +50,7 @@ export function createCharacterOverlay({
   container.style.left = '0';
   container.style.top = '0';
   container.style.pointerEvents = 'none';
-  container.style.zIndex = '5';
+  container.style.zIndex = String(zIndex);
   document.body.appendChild(container);
 
   // Illustrator exporta las clases de color con nombres genéricos (.cls-1,
@@ -80,7 +82,7 @@ export function createCharacterOverlay({
     // Ancla el pie de la cola en sirena.y, y centra horizontalmente en sirena.x.
     update(sirena) {
       const left = sirena.x - displayW / 2;
-      const top = sirena.y - displayH;
+      const top = sirena.y - displayH * anchorY;
       container.style.transform = `translate(${left}px, ${top}px)`;
 
       if (brazoMano && elbow) {

@@ -12,6 +12,7 @@ import { createMetalOverlay } from './visuals/metalOverlay.js';
 import { createArpaOverlay } from './visuals/arpaOverlay.js';
 import { createSintetizadorOverlay } from './visuals/sintetizadorOverlay.js';
 import { createCampanaOverlay } from './visuals/campanaOverlay.js';
+import { createRockOverlay } from './visuals/rockOverlay.js';
 
 // Registro de sirenas con ilustración propia (SVG animado en el DOM,
 // aislado por shadow DOM para que sus colores nunca se mezclen entre sí)
@@ -26,6 +27,15 @@ const illustratedOverlays = {
   sintetizador: createSintetizadorOverlay(),
   campana: createCampanaOverlay(),
 };
+
+// Roca bajo cada sirena, salvo Campana -- su propio SVG ya trae la suya
+// dibujada junto con el cuerpo. Una instancia propia por sirena (no
+// compartida) para que cada una tenga su propio contenedor posicionado.
+const rockOverlays = {};
+for (const agent of AGENTS) {
+  if (agent.id === 'campana') continue;
+  rockOverlays[agent.id] = createRockOverlay();
+}
 
 let sirenas = [];
 let ripples = [];
@@ -177,9 +187,10 @@ function drawSirena(p, s) {
 // El marcador no es un objeto físico aparte: su posición ES notePosition(),
 // es decir theta reformulado como recorrido por su propia escala. No hay
 // ninguna capa intermedia entre el modelo y lo que se ve.
-function drawNoteLadder(p, s) {
+function drawNoteLadder(p, s, sideOffset) {
   const rungGap = 34;
   const bottomY = s.y - 26;
+  const ladderX = s.x + sideOffset;
   const col = p.color(s.agent.color);
 
   p.push();
@@ -188,25 +199,25 @@ function drawNoteLadder(p, s) {
 
   p.stroke(h, 20, 85, 30);
   p.strokeWeight(2);
-  p.line(s.x, bottomY, s.x, bottomY - rungGap * 3);
+  p.line(ladderX, bottomY, ladderX, bottomY - rungGap * 3);
 
-  p.textAlign(p.RIGHT, p.CENTER);
+  p.textAlign(p.LEFT, p.CENTER);
   p.textSize(10);
   for (let i = 0; i < 4; i++) {
     const ry = bottomY - i * rungGap;
     const active = i === s.noteIndex;
     p.noStroke();
     p.fill(h, active ? 70 : 25, active ? 100 : 70, active ? 90 : 40);
-    p.circle(s.x, ry, active ? 7 : 4);
+    p.circle(ladderX, ry, active ? 7 : 4);
     p.fill(h, 30, 90, active ? 90 : 45);
-    p.text(s.agent.notes[i], s.x - 10, ry);
+    p.text(s.agent.notes[i], ladderX + 8, ry);
   }
 
   // El marcador: posición continua entre peldaños, literalmente notePosition().
   const markerY = bottomY - s.notePosition() * rungGap;
   p.noStroke();
   p.fill(h, 50, 100, 95);
-  p.circle(s.x, markerY, 9);
+  p.circle(ladderX, markerY, 9);
   p.pop();
 }
 
@@ -271,7 +282,13 @@ const sketch = (p) => {
     ripples = ripples.filter((r) => !r.dead);
     for (const ripple of ripples) ripple.step(sirenas, dt);
 
-    for (const s of sirenas) drawNoteLadder(p, s);
+    for (const s of sirenas) {
+      // La escalera va al costado, no debajo -- el hueco entre sirenas
+      // vecinas, justo después del ancho real de su ilustración.
+      const overlay = illustratedOverlays[s.agent.id];
+      const sideOffset = (overlay ? overlay.displayW / 2 : 30) + 22;
+      drawNoteLadder(p, s, sideOffset);
+    }
 
     for (const ripple of ripples) {
       p.noFill();
@@ -281,6 +298,11 @@ const sketch = (p) => {
     }
 
     for (const s of sirenas) {
+      // Roca bajo la sirena (todas menos Campana, que ya trae la suya
+      // propia) -- se actualiza antes que el personaje pero queda detrás
+      // por su propio zIndex, no por el orden de estas llamadas.
+      rockOverlays[s.agent.id]?.update(s);
+
       // Las sirenas con ilustración propia usan su SVG animado (ver
       // visuals/) en vez del dibujo procedural -- el resto del modelo
       // (ladder, audio, K, arrastre) sigue siendo exactamente el mismo.
