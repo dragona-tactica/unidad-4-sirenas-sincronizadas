@@ -349,7 +349,7 @@ function drawCouplingLinks(p, sirenas, globalK) {
 // tasa de aparición sí depende de K (la Marea real, no un valor inventado)
 // -- más acoplamiento, más turbulencia visible en el agua.
 function spawnBubbles(p, k) {
-  const chance = 0.02 + k * 0.06;
+  const chance = 0.006 + k * 0.02;
   if (Math.random() < chance) {
     bubbles.push({
       x: Math.random() * p.width,
