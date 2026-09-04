@@ -14,7 +14,10 @@ export function createMetalOverlay() {
     viewW: 320,
     viewH: 730,
     elbow: { x: 170, y: 285 },
-    sweepAngle: 16,
+    // El mazo recorre el borde del cuenco de lado a lado -- deslizar en
+    // horizontal, no girar desde el codo (mismo motivo que el xilófono).
+    sweepMode: 'translateX',
+    sweepDistance: 10,
     tailPivot: { x: 160, y: 328 },
     hairSelector: '#pelo',
     hairPivot: { x: 145, y: 50 },

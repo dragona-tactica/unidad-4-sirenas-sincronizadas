@@ -4,12 +4,19 @@
 // medidos con getBBox() sobre su propio dibujo; la lógica de animación es
 // la misma para todos, y sale siempre de su theta real (nunca un reloj
 // aparte):
-// - el grupo de brazo+mano (ya viene fusionado en el archivo) gira como un
-//   solo bloque rígido desde el codo, siguiendo notePosition() (0..3, el
-//   mismo péndulo de la escalera de notas). Sin golpe de singPulse encima:
-//   ese golpe salta de 0 a 1 en un solo frame (por diseño, para el
-//   destello), y sumarlo a una rotación continua se siente como un salto
-//   en vez de un movimiento fluido.
+// - el grupo de brazo+mano (ya viene fusionado en el archivo) se mueve como
+//   un solo bloque rígido siguiendo notePosition() (0..3, el mismo péndulo
+//   de la escalera de notas). Dos modos, según el instrumento:
+//   'rotate' (por defecto) gira desde el codo -- para instrumentos que se
+//   sostienen y se pulsan (lira, arpa, pipa...). 'translateX' desliza el
+//   brazo en línea horizontal -- para instrumentos donde la mano golpea de
+//   lado a lado sobre una superficie fija (xilófono, cuenco tibetano): con
+//   la forma ancha/horizontal de ese brazo, rotarlo desde un punto lateral
+//   mueve la mano sobre todo verticalmente (perpendicular al brazo), no de
+//   lado a lado como debería verse un mazo recorriendo las teclas/el borde.
+//   Sin golpe de singPulse encima: ese golpe salta de 0 a 1 en un solo
+//   frame (por diseño, para el destello), y sumarlo a un movimiento
+//   continuo se siente como un salto en vez de algo fluido.
 // - cola y pelo oscilan con sin(theta) directamente, como el bobbing
 //   original -- misma idea, aplicada como rotación en vez de posición Y.
 export function createCharacterOverlay({
@@ -20,6 +27,8 @@ export function createCharacterOverlay({
   armGroupSelector = '#grupo_brazo_mano_w',
   elbow,
   sweepAngle = 14,
+  sweepMode = 'rotate', // 'rotate' | 'translateX'
+  sweepDistance = 8, // unidades del propio SVG, solo para 'translateX'
   tailSelector = '#cola',
   tailPivot,
   tailAmplitude = 4,
@@ -69,8 +78,13 @@ export function createCharacterOverlay({
 
       if (brazoMano && elbow) {
         const f = sirena.notePosition() / 3; // 0..1, el mismo péndulo real.
-        const angle = (f - 0.5) * sweepAngle;
-        brazoMano.setAttribute('transform', `rotate(${angle.toFixed(2)} ${elbow.x} ${elbow.y})`);
+        if (sweepMode === 'translateX') {
+          const dx = (f - 0.5) * sweepDistance;
+          brazoMano.setAttribute('transform', `translate(${dx.toFixed(2)},0)`);
+        } else {
+          const angle = (f - 0.5) * sweepAngle;
+          brazoMano.setAttribute('transform', `rotate(${angle.toFixed(2)} ${elbow.x} ${elbow.y})`);
+        }
       }
 
       if (cola && tailPivot) {

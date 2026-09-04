@@ -14,7 +14,11 @@ export function createXilofonoOverlay() {
     viewW: 320,
     viewH: 750,
     elbow: { x: 170, y: 290 },
-    sweepAngle: 16,
+    // El mazo golpea de lado a lado sobre las teclas -- deslizar en
+    // horizontal, no girar desde el codo (esa forma de brazo, ancha y casi
+    // horizontal, movería la mano sobre todo vertical si se rotara).
+    sweepMode: 'translateX',
+    sweepDistance: 14,
     tailPivot: { x: 160, y: 328 },
     hairSelector: '#pelo_nuevo',
     hairPivot: { x: 145, y: 45 },
