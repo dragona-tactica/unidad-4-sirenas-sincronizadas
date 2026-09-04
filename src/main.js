@@ -7,6 +7,10 @@ import { createMaster, createVoice, triggerSirena } from './audio/voices.js';
 import { createLiraOverlay } from './visuals/liraOverlay.js';
 import { createVientoOverlay } from './visuals/vientoOverlay.js';
 import { createPipaOverlay } from './visuals/pipaOverlay.js';
+import { createXilofonoOverlay } from './visuals/xilofonoOverlay.js';
+import { createMetalOverlay } from './visuals/metalOverlay.js';
+import { createArpaOverlay } from './visuals/arpaOverlay.js';
+import { createSintetizadorOverlay } from './visuals/sintetizadorOverlay.js';
 
 // Registro de sirenas con ilustración propia (SVG animado en el DOM,
 // aislado por shadow DOM para que sus colores nunca se mezclen entre sí)
@@ -15,6 +19,10 @@ const illustratedOverlays = {
   lira: createLiraOverlay(),
   viento: createVientoOverlay(),
   pipa: createPipaOverlay(),
+  xilofono: createXilofonoOverlay(),
+  metal: createMetalOverlay(),
+  arpa: createArpaOverlay(),
+  sintetizador: createSintetizadorOverlay(),
 };
 
 let sirenas = [];
