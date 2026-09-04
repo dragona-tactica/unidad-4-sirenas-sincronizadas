@@ -25,6 +25,7 @@ export function createCharacterOverlay({
   viewH,
   displayH = 150,
   armGroupSelector = '#grupo_brazo_mano_w',
+  armRestTransform = '', // alineación fija (traslación/rotación) antes del barrido animado
   elbow,
   sweepAngle = 14,
   sweepMode = 'rotate', // 'rotate' | 'translateX'
@@ -78,12 +79,18 @@ export function createCharacterOverlay({
 
       if (brazoMano && elbow) {
         const f = sirena.notePosition() / 3; // 0..1, el mismo péndulo real.
+        // armRestTransform primero (alinea el brazo con el hombro/instrumento
+        // de este personaje), y el barrido animado encima -- si solo se
+        // pusiera el barrido, se perdería la alineación fija en cada frame.
         if (sweepMode === 'translateX') {
           const dx = (f - 0.5) * sweepDistance;
-          brazoMano.setAttribute('transform', `translate(${dx.toFixed(2)},0)`);
+          brazoMano.setAttribute('transform', `${armRestTransform} translate(${dx.toFixed(2)},0)`);
         } else {
           const angle = (f - 0.5) * sweepAngle;
-          brazoMano.setAttribute('transform', `rotate(${angle.toFixed(2)} ${elbow.x} ${elbow.y})`);
+          brazoMano.setAttribute(
+            'transform',
+            `${armRestTransform} rotate(${angle.toFixed(2)} ${elbow.x} ${elbow.y})`
+          );
         }
       }
 

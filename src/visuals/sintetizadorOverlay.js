@@ -10,13 +10,18 @@ import { createCharacterOverlay } from './characterOverlay.js';
 //   y73.2-152.2).
 // - sintetizador_w (antes "Objeto_generativo (45, 0)"): x132.1-280.5,
 //   y337.2-399.8 -- el pad a la altura del vientre. Se queda fijo.
-// - grupo_brazo_mano_w (x43-207.9, y254.4-350.8): el codo es su borde
-//   derecho, junto al torso.
+// - grupo_brazo_mano_w se reemplazó por la pieza nueva ya unida (brazo+mano
+//   +parche de hombro en una sola pieza, sin costura). Su pecho_w se alineó
+//   con el pecho_w original de este archivo, y se añadió una rotación para
+//   que los dedos queden apuntando hacia el pad en vez de flotando sobre
+//   él -- sin mazo aquí (se toca con la mano directa), así que la
+//   orientación de la mano sí importa por sí sola.
 export function createSintetizadorOverlay() {
   return createCharacterOverlay({
     svgRaw: sintetizadorSvgRaw,
     viewW: 368,
     viewH: 720,
+    armRestTransform: 'translate(62,5) rotate(35 200 290)',
     elbow: { x: 200, y: 290 },
     // Los dedos tocan distintos pads de lado a lado sobre la superficie --
     // deslizar en horizontal, no girar desde el codo (mismo motivo que el

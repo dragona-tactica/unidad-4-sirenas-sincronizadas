@@ -2,10 +2,10 @@ import metalSvgRaw from '../assets/metal-sirena.svg?raw';
 import { createCharacterOverlay } from './characterOverlay.js';
 
 // Puntos medidos con getBBox() sobre metal-sirena.svg (viewBox recortado a
-// "-6 37 320 730"):
-// - grupo_brazo_mano_w (x2.6-174.8, y256.1-318.8): el codo es su borde
-//   derecho, junto al torso. El cuenco tibetano (cuenco_tibetano) se
-//   queda fijo.
+// "-6 37 320 730"). Igual que en Xilófono: grupo_brazo_mano_w se reemplazó
+// por la pieza nueva ya unida, alineada con el pecho_w original vía
+// armRestTransform, y el mazo del cuenco (antes suelto y estático dentro de
+// "cuenco_tibetano") se re-parentó dentro del nuevo grupo.
 // - cola: se une al torso en ~(160,328). pelo: nace cerca de la cabeza,
 //   ~(145,50) -- este pelo es largo y recto, baja hasta y400.
 export function createMetalOverlay() {
@@ -13,6 +13,7 @@ export function createMetalOverlay() {
     svgRaw: metalSvgRaw,
     viewW: 320,
     viewH: 730,
+    armRestTransform: 'translate(6,-29)',
     elbow: { x: 170, y: 285 },
     // El mazo recorre el borde del cuenco de lado a lado -- deslizar en
     // horizontal, no girar desde el codo (mismo motivo que el xilófono).
