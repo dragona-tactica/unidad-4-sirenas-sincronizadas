@@ -296,6 +296,55 @@ function drawLightRays(p, r) {
   p.pop();
 }
 
+// Hilo de acoplamiento entre cada par de sirenas -- no es decoración: usa
+// EXACTAMENTE los mismos términos que Sirena.step() calcula para la propia
+// ecuación de Kuramoto (spatial = decaimiento por distancia mítica,
+// localFactor = ese decaimiento ya descontando la piedra si alguna está
+// perturbada), más el desfase real cos(theta_j - theta_i). Un par que
+// apenas se nota es uno cuyo término de acoplamiento real es casi cero
+// (muy lejos, o alguna está aislada por la piedra); un hilo bien visible y
+// dorado es un par con acoplamiento fuerte Y en fase -- literalmente
+// sincronizándose. No se dibuja nada por debajo de un umbral mínimo, así
+// que el hilo APARECE solo cuando el acoplamiento real empieza a pesar.
+function drawCouplingLinks(p, sirenas, globalK) {
+  p.push();
+  p.blendMode(p.ADD);
+  p.strokeCap(p.ROUND);
+  for (let i = 0; i < sirenas.length; i++) {
+    for (let j = i + 1; j < sirenas.length; j++) {
+      const a = sirenas[i];
+      const b = sirenas[j];
+      const dist = Math.abs(a.x - b.x);
+      const spatial = Math.exp(-dist / 220);
+      const localFactor = spatial * (1 - a.disturbance) * (1 - b.disturbance);
+      const strength = localFactor * globalK;
+      if (strength < 0.03) continue;
+
+      const alignment = (Math.cos(b.theta - a.theta) + 1) / 2; // 0 = en contrafase, 1 = en fase
+      const alpha = Math.min(90, strength * 130);
+      if (alpha < 4) continue;
+
+      // Frío/tenue cuando están acopladas pero aún desfasadas; dorado y
+      // más grueso cuando el acoplamiento realmente las sincroniza.
+      const r = p.lerp(120, 255, alignment);
+      const g = p.lerp(160, 225, alignment);
+      const bch = p.lerp(220, 140, alignment);
+      const weight = p.lerp(0.6, 2.6, alignment * strength);
+
+      const overlayA = illustratedOverlays[a.agent.id];
+      const overlayB = illustratedOverlays[b.agent.id];
+      const ay = a.y - (overlayA ? overlayA.displayH : 150) * 0.55;
+      const by = b.y - (overlayB ? overlayB.displayH : 150) * 0.55;
+
+      p.stroke(r, g, bch, alpha);
+      p.strokeWeight(weight);
+      p.line(a.x, ay, b.x, by);
+    }
+  }
+  p.blendMode(p.BLEND);
+  p.pop();
+}
+
 // Burbujas ambiente: decoración de fondo, igual que los rayos de luz. La
 // tasa de aparición sí depende de K (la Marea real, no un valor inventado)
 // -- más acoplamiento, más turbulencia visible en el agua.
@@ -444,6 +493,7 @@ const sketch = (p) => {
 
     const { r: syncR } = computeOrderParameter(sirenas);
     drawLightRays(p, syncR);
+    drawCouplingLinks(p, sirenas, globalK);
 
     spawnBubbles(p, globalK);
     updateAndDrawBubbles(p, dt);
