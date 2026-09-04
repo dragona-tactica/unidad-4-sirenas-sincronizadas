@@ -227,6 +227,73 @@ function drawNoteLadder(p, s, sideOffset) {
   p.pop();
 }
 
+// Rayos de luz submarina (ambiente decorativo, como el "god ray" de la
+// referencia del usuario) -- no es una de las 8 personalidades Kuramoto,
+// así que no necesita salir de theta; se mueve con un balanceo lento y
+// propio. Sí se apoya en el order parameter real (r) para su nitidez: entre
+// más sincronizadas están las sirenas, más definidos se ven los rayos, como
+// si el agua se aquietara -- un enlace más con el estado real del modelo,
+// no un reemplazo de él.
+let lightRays = [];
+
+function buildLightRays(width) {
+  const count = 6;
+  const rays = [];
+  for (let i = 0; i < count; i++) {
+    rays.push({
+      xFrac: (i + 0.5) / count + (Math.sin(i * 12.9) * 0.04),
+      topWidth: width * (0.03 + 0.02 * ((i * 37) % 5) / 5),
+      speed: 0.15 + 0.05 * (i % 3),
+      phase: i * 1.7,
+      sway: width * 0.025,
+    });
+  }
+  return rays;
+}
+
+function drawLightRays(p, r) {
+  const t = p.frameCount * 0.01;
+  const clarity = 0.5 + 0.5 * r; // más sync = rayos más definidos
+  const segments = 24;
+  const fadeDepth = p.height * 0.75; // los rayos se apagan antes de llegar al fondo
+
+  p.push();
+  p.blendMode(p.ADD);
+  p.noStroke();
+  for (const ray of lightRays) {
+    const topX = ray.xFrac * p.width + Math.sin(t * ray.speed + ray.phase) * ray.sway;
+    const botX = topX + Math.sin(t * ray.speed * 0.6 + ray.phase + 1.3) * ray.sway * 1.6;
+    const topW = ray.topWidth;
+    const botW = topW * 2.6;
+    const flicker = 0.65 + 0.35 * Math.abs(Math.sin(t * ray.speed * 1.3 + ray.phase));
+    const peakAlpha = 55 * clarity * flicker;
+
+    // Segmentado de arriba (brillante) a abajo (se apaga) -- sin usar
+    // gradientes nativos, varios cuadriláteros con alpha decreciente.
+    for (let i = 0; i < segments; i++) {
+      const y0 = (fadeDepth * i) / segments;
+      const y1 = (fadeDepth * (i + 1)) / segments;
+      const f0 = 1 - i / segments;
+      const f1 = 1 - (i + 1) / segments;
+      const fMid = (f0 + f1) / 2;
+      const x0 = p.lerp(topX, botX, y0 / p.height);
+      const x1 = p.lerp(topX, botX, y1 / p.height);
+      const w0 = p.lerp(topW, botW, y0 / p.height);
+      const w1 = p.lerp(topW, botW, y1 / p.height);
+
+      p.fill(190, 230, 255, peakAlpha * fMid * fMid);
+      p.beginShape();
+      p.vertex(x0 - w0 / 2, y0);
+      p.vertex(x0 + w0 / 2, y0);
+      p.vertex(x1 + w1 / 2, y1);
+      p.vertex(x1 - w1 / 2, y1);
+      p.endShape(p.CLOSE);
+    }
+  }
+  p.blendMode(p.BLEND);
+  p.pop();
+}
+
 function drawFaro(p, r) {
   const cx = 50;
   const cy = p.height - 50;
@@ -259,11 +326,13 @@ const sketch = (p) => {
     const canvas = p.createCanvas(window.innerWidth, window.innerHeight);
     canvas.parent(document.body);
     sirenas = buildSirenas(p.width, p.height);
+    lightRays = buildLightRays(p.width);
   };
 
   p.windowResized = () => {
     p.resizeCanvas(window.innerWidth, window.innerHeight);
     sirenas = buildSirenas(p.width, p.height);
+    lightRays = buildLightRays(p.width);
     if (audioStarted) {
       for (const s of sirenas) s.voice = createVoice(s.agent.synth, audioMaster);
     }
@@ -284,6 +353,9 @@ const sketch = (p) => {
         }
       }
     }
+
+    const { r: syncR } = computeOrderParameter(sirenas);
+    drawLightRays(p, syncR);
 
     ripples = ripples.filter((r) => !r.dead);
     for (const ripple of ripples) ripple.step(sirenas, dt);
@@ -320,12 +392,11 @@ const sketch = (p) => {
       }
     }
 
-    const { r } = computeOrderParameter(sirenas);
-    drawFaro(p, r);
+    drawFaro(p, syncR);
 
     stateLabel.textContent =
-      'Estado: ' + (r < 0.35 ? 'Desorden' : r < 0.8 ? 'Organización parcial' : 'Organización estable') +
-      ` (r=${r.toFixed(2)}, K=${globalK.toFixed(2)})`;
+      'Estado: ' + (syncR < 0.35 ? 'Desorden' : syncR < 0.8 ? 'Organización parcial' : 'Organización estable') +
+      ` (r=${syncR.toFixed(2)}, K=${globalK.toFixed(2)})`;
   };
 
   p.mousePressed = () => {
