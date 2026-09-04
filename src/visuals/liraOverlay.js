@@ -5,7 +5,7 @@ import { createCharacterOverlay } from './characterOverlay.js';
 // - grupo_brazo_mano_w (x51.6-241, y274.2-316.9): el codo es su borde
 //   izquierdo, donde el antebrazo+mano se separó del torso.
 // - cola: se une al torso en ~(200,324). pelo: nace cerca de la cabeza,
-//   ~(160,58).
+//   ~(180,58).
 export function createLiraOverlay() {
   return createCharacterOverlay({
     svgRaw: liraSvgRaw,
@@ -15,6 +15,6 @@ export function createLiraOverlay() {
     sweepAngle: 14,
     tailPivot: { x: 200, y: 324 },
     hairSelector: '#pelo',
-    hairPivot: { x: 160, y: 58 },
+    hairPivot: { x: 180, y: 58 },
   });
 }
